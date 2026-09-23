@@ -57,7 +57,16 @@ test:
   variables:
     GOPATH: $CI_PROJECT_DIR/.gocache
   script:
-    - test -z "$(gofmt -l .)" || (gofmt -l . && echo "Run gofmt -w ." && exit 1)
+    # Only the files we version: `.` would descend into .gocache, since GOPATH
+    # has to sit inside the project directory for GitLab to cache it, and the
+    # dependency sources it holds are not ours to format.
+    - |
+      unformatted=$(gofmt -l $(git ls-files '*.go'))
+      if [ -n "${unformatted}" ]; then
+        echo "${unformatted}"
+        echo "Run gofmt -w ."
+        exit 1
+      fi
     - go vet ./...
     - go build -o terraform-provider-pathly .
     - go test ./internal/... -race -coverprofile=covprofile
