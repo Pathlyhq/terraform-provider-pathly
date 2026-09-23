@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 )
@@ -116,27 +115,7 @@ func (c *Client) DeleteScenario(ctx context.Context, id string) error {
 // A data source that returned only the first page would produce silently
 // incomplete `for_each` loops.
 func (c *Client) ListScenarios(ctx context.Context) ([]Scenario, error) {
-	var all []Scenario
-	cursor := ""
-	for page := 0; page < 200; page++ {
-		var out struct {
-			Items      []Scenario `json:"items"`
-			NextCursor *string    `json:"nextCursor"`
-		}
-		path := "/v1/scenarios?limit=200"
-		if cursor != "" {
-			path += "&cursor=" + url.QueryEscape(cursor)
-		}
-		if err := c.do(ctx, request{method: http.MethodGet, path: path, out: &out}); err != nil {
-			return nil, err
-		}
-		all = append(all, out.Items...)
-		if out.NextCursor == nil || *out.NextCursor == "" {
-			return all, nil
-		}
-		cursor = *out.NextCursor
-	}
-	return nil, fmt.Errorf("scenario pagination: too many pages, stopping on purpose")
+	return listPaged[Scenario](ctx, c, "/v1/scenarios", nil)
 }
 
 // MuteScenario mutes or unmutes. A nil `until` wakes the scenario up.
