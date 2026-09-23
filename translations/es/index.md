@@ -48,9 +48,15 @@ necesarios:
 | Recursos gestionados | Alcances |
 |---|---|
 | `pathly_scenario`, `pathly_scenarios` | `scenarios:read`, `scenarios:write` |
+| `pathly_settings` | `org:read`, `org:write` |
 | `pathly_webhook` | `alerting:read`, `alerting:write` |
 | `pathly_maintenance_window` | `maintenance:read`, `maintenance:write` |
 | `pathly_sla_target` | `sla:read`, `sla:write` |
+| `pathly_incidents` | `incidents:read` |
+| `pathly_members` | `members:read` |
+| `pathly_runs`, `pathly_run` | `runs:read` |
+| `pathly_sla`, `pathly_sla_targets` | `sla:read` |
+| `pathly_usage` | `org:read` |
 
 Para un pipeline que solo ejecuta `terraform plan`, los alcances `:read` bastan.
 No se exige ningún alcance de organización: la comprobación realizada en el
@@ -88,9 +94,14 @@ sobre los atributos del bloque.
 
 ## Fuera de alcance, deliberadamente
 
-El provider no gestiona organizaciones, ni usuarios, ni claves de API, ni
-destinatarios de notificaciones, ni el silenciado de incidentes. Los tres
-primeros convertirían una fuga de token en una toma de control de la
-organización, el cuarto pondría datos personales en un archivo de estado, y el
-quinto supondría que un `apply` reactive un escenario silenciado
-deliberadamente.
+- **Claves de API** — no hay un endpoint de token en `/v1`. Una clave que
+  pueda crear otras convertiría una fuga en una toma de control.
+- **Los miembros se leen, no se escriben** — invitar a un propietario desde
+  un archivo Terraform convertiría una escritura en el repositorio en una
+  concesión de acceso.
+- **Tres acciones** — lanzar una ejecución, restablecer una baseline de
+  comparación y resolver un incidente. Terraform reproduce un estado deseado:
+  un `apply` una semana después las relanzaría. Pertenecen a la API y a la
+  consola.
+- **Silenciado** — gesto operativo temporal. `muted_until` es de solo
+  lectura.

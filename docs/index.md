@@ -1,7 +1,7 @@
 ---
 page_title: "Pathly Provider"
 description: |-
-  Manage Pathly monitoring as code: scenarios, maintenance windows, webhooks and SLA targets.
+  Manage Pathly monitoring as code: scenarios, settings, maintenance windows, webhooks and SLA targets.
 ---
 
 # Pathly Provider
@@ -42,9 +42,15 @@ administrator account. Give it the strictly necessary scopes:
 | Managed resources | Scopes |
 |---|---|
 | `pathly_scenario`, `pathly_scenarios` | `scenarios:read`, `scenarios:write` |
+| `pathly_settings` | `org:read`, `org:write` |
 | `pathly_webhook` | `alerting:read`, `alerting:write` |
 | `pathly_maintenance_window` | `maintenance:read`, `maintenance:write` |
 | `pathly_sla_target` | `sla:read`, `sla:write` |
+| `pathly_incidents` | `incidents:read` |
+| `pathly_members` | `members:read` |
+| `pathly_runs`, `pathly_run` | `runs:read` |
+| `pathly_sla`, `pathly_sla_targets` | `sla:read` |
+| `pathly_usage` | `org:read` |
 
 For a pipeline that only runs `terraform plan`, the `:read` scopes are enough.
 No organization scope is required: the check made at configuration time
@@ -81,8 +87,13 @@ precedence over the attributes of the block.
 
 ## Out of scope, deliberately
 
-The provider manages no organizations, no users, no API keys, no notification
-recipients and no incident muting. The first three would turn a token leak into
-a takeover of the organization, the fourth would put personal data into a state
-file, and the fifth would mean an `apply` wakes up a scenario that was
-deliberately muted.
+- **API keys** — there is no token endpoint on `/v1`. A key that can mint keys
+  would turn a leak into a takeover.
+- **Members are readable, not writable** — inviting an owner from a Terraform
+  file turns a repository write into an access grant.
+- **Three actions** — triggering a run, resetting a comparison baseline, and
+  resolving an incident. Terraform replays a desired state, so an apply run
+  again a week later would trigger them anew. They belong to the API and the
+  console.
+- **Incident muting** — a temporary operational gesture. `muted_until` is
+  read-only.

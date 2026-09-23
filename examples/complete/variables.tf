@@ -1,3 +1,22 @@
+variable "shop_user" {
+  description = "Login used by the five-step checkout journey."
+  type        = string
+  default     = "probe@example.com"
+}
+
+variable "shop_password" {
+  description = "Password of that login. Override it, do not commit a real one."
+  type        = string
+  sensitive   = true
+  default     = "replace-me"
+}
+
+variable "alert_email" {
+  description = "Address that receives the failure alerts."
+  type        = string
+  default     = "ops@example.com"
+}
+
 variable "environment" {
   description = "Tag applied to every scenario, and filter for the data source."
   type        = string

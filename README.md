@@ -57,9 +57,14 @@ required by the resources you manage:
 | Managed resource | Scopes |
 |---|---|
 | `pathly_scenario`, `pathly_scenarios` | `scenarios:read`, `scenarios:write` |
+| `pathly_settings` | `org:read`, `org:write` |
 | `pathly_webhook` | `alerting:read`, `alerting:write` |
 | `pathly_maintenance_window` | `maintenance:read`, `maintenance:write` |
 | `pathly_sla_target` | `sla:read`, `sla:write` |
+| `pathly_incidents` | `incidents:read` |
+| `pathly_members` | `members:read` |
+| `pathly_runs`, `pathly_run` | `runs:read` |
+| `pathly_usage` | `org:read` |
 
 For a pipeline that only runs `terraform plan`, the `:read` scopes are enough.
 
@@ -76,11 +81,21 @@ create another one, nor invite an account.
 
 | Name | What it manages |
 |---|---|
-| `pathly_scenario` | HTTP or browser monitoring scenario |
+| `pathly_scenario` | HTTP check or browser journey (write-only steps) |
+| `pathly_settings` | Organization settings (singleton, destroy does not reset) |
 | `pathly_maintenance_window` | Maintenance window, one-off or weekly |
 | `pathly_webhook` | Signed outbound webhook |
 | `pathly_sla_target` | SLA target and error budget |
-| `pathly_scenarios` (data source) | Inventory of scenarios, filterable by tag or folder |
+| `pathly_scenarios` | Inventory of scenarios |
+| `pathly_settings` (data) | Settings, read-only |
+| `pathly_usage` | Plan consumption |
+| `pathly_incidents` | Incidents |
+| `pathly_members` | Members, read-only |
+| `pathly_runs`, `pathly_run` | Executions |
+| `pathly_sla`, `pathly_sla_targets` | Objectives, with or without measurement |
+| `pathly_webhooks` | Webhooks without their destination |
+| `pathly_maintenance_windows` | Windows |
+| `pathly_status_page` | Public status page |
 
 Per-resource documentation in [`docs/`](docs/), complete examples in
 [`examples/`](examples/). The same reference pages are translated in

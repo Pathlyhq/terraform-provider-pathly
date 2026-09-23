@@ -79,6 +79,55 @@ resource "pathly_webhook" "alerts" {
   events = ["run.failed", "run.recovered"]
 }
 
+# Five-step browser journey. The password stays in a variable so it does not
+# sit in the repository. After apply, only scenario_fingerprint is readable
+# from the API: a console edit of the tree shows up as drift.
+resource "pathly_scenario" "checkout_browser" {
+  name         = "Checkout as a customer"
+  type         = "browser"
+  interval_sec = 300
+  severity     = "critical"
+  folder       = var.folder
+  tags         = ["terraform", var.environment, "payment"]
+  runbook      = "https://wiki.example.com/ops/checkout-unavailable"
+
+  viewport          = "desktop"
+  locale            = "fr-FR"
+  scenario_timezone = "Europe/Paris"
+  click_delay_ms    = 500
+
+  steps = [
+    {
+      op  = "goto"
+      url = "https://shop.example.com/login"
+    },
+    {
+      op       = "fill"
+      selector = "input[name=email]"
+      value    = var.shop_user
+    },
+    {
+      op       = "fill"
+      selector = "input[name=password]"
+      value    = var.shop_password
+    },
+    {
+      op       = "click"
+      selector = "button[type=submit]"
+      text     = "Sign in"
+    },
+    {
+      op   = "assert_text"
+      text = "Your cart"
+    },
+  ]
+}
+
+resource "pathly_settings" "org" {
+  timezone    = "Europe/Paris"
+  alert_email = var.alert_email
+}
+
 # Inventory read back from the API: useful to check that no scenario created by
 # hand in the console is hiding outside the code.
 data "pathly_scenarios" "prod" {

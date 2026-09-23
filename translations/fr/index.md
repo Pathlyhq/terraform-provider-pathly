@@ -50,9 +50,15 @@ nécessaires :
 | Ressources gérées | Portées |
 |---|---|
 | `pathly_scenario`, `pathly_scenarios` | `scenarios:read`, `scenarios:write` |
+| `pathly_settings` | `org:read`, `org:write` |
 | `pathly_webhook` | `alerting:read`, `alerting:write` |
 | `pathly_maintenance_window` | `maintenance:read`, `maintenance:write` |
 | `pathly_sla_target` | `sla:read`, `sla:write` |
+| `pathly_incidents` | `incidents:read` |
+| `pathly_members` | `members:read` |
+| `pathly_runs`, `pathly_run` | `runs:read` |
+| `pathly_sla`, `pathly_sla_targets` | `sla:read` |
+| `pathly_usage` | `org:read` |
 
 Pour un pipeline qui ne fait que `terraform plan`, les portées `:read`
 suffisent. Aucune portée d'organisation n'est exigée : la vérification faite au
@@ -89,9 +95,14 @@ sur les attributs du bloc.
 
 ## Hors périmètre, délibérément
 
-Le provider ne gère ni organisations, ni utilisateurs, ni clés d'API, ni
-destinataires de notification, ni mise en sourdine d'incident. Les trois
-premiers transformeraient une fuite de jeton en prise de contrôle de
-l'organisation, le quatrième mettrait des données personnelles dans un fichier
-d'état, et le cinquième signifierait qu'un `apply` réveille un scénario
-délibérément mis en sourdine.
+- **Clés d'API** — il n'existe pas d'endpoint de jeton sur `/v1`. Une clé qui
+  peut en forger d'autres transformerait une fuite en prise de contrôle.
+- **Les membres se lisent, ils ne s'écrivent pas** — inviter un propriétaire
+  depuis un fichier Terraform transformerait une écriture dans le dépôt en
+  octroi d'accès.
+- **Trois actions** — déclencher une exécution, réinitialiser une baseline de
+  comparaison, et résoudre un incident. Terraform rejoue un état désiré : un
+  `apply` une semaine plus tard les relancerait. Elles restent dans l'API et
+  la console.
+- **Mise en sourdine** — geste opérationnel temporaire. `muted_until` est en
+  lecture seule.

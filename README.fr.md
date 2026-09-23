@@ -61,9 +61,14 @@ strictement exigées par les ressources que vous gérez :
 | Ressource gérée | Portées |
 |---|---|
 | `pathly_scenario`, `pathly_scenarios` | `scenarios:read`, `scenarios:write` |
+| `pathly_settings` | `org:read`, `org:write` |
 | `pathly_webhook` | `alerting:read`, `alerting:write` |
 | `pathly_maintenance_window` | `maintenance:read`, `maintenance:write` |
 | `pathly_sla_target` | `sla:read`, `sla:write` |
+| `pathly_incidents` | `incidents:read` |
+| `pathly_members` | `members:read` |
+| `pathly_runs`, `pathly_run` | `runs:read` |
+| `pathly_usage` | `org:read` |
 
 Pour un pipeline qui ne fait que `terraform plan`, les portées `:read`
 suffisent.
@@ -81,11 +86,21 @@ ne peut pas en créer une autre, ni inviter un compte.
 
 | Nom | Ce qu'il gère |
 |---|---|
-| `pathly_scenario` | Scénario de surveillance HTTP ou navigateur |
+| `pathly_scenario` | Contrôle HTTP ou parcours navigateur (étapes en écriture seule) |
+| `pathly_settings` | Paramètres d'organisation (singleton, destroy ne les remet pas à zéro) |
 | `pathly_maintenance_window` | Fenêtre de maintenance, ponctuelle ou hebdomadaire |
 | `pathly_webhook` | Webhook sortant signé |
 | `pathly_sla_target` | Objectif de disponibilité et budget d'erreur |
-| `pathly_scenarios` (source de données) | Inventaire des scénarios, filtrable par étiquette ou par dossier |
+| `pathly_scenarios` | Inventaire des scénarios |
+| `pathly_settings` (données) | Paramètres, lecture seule |
+| `pathly_usage` | Consommation du plan |
+| `pathly_incidents` | Incidents |
+| `pathly_members` | Membres, lecture seule |
+| `pathly_runs`, `pathly_run` | Exécutions |
+| `pathly_sla`, `pathly_sla_targets` | Objectifs, avec ou sans mesure |
+| `pathly_webhooks` | Webhooks sans leur destination |
+| `pathly_maintenance_windows` | Fenêtres |
+| `pathly_status_page` | Page de statut publique |
 
 Documentation par ressource dans [`docs/`](docs/), traduite en français dans
 [`translations/fr/`](translations/fr/), exemples complets dans

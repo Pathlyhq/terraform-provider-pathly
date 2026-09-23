@@ -58,9 +58,14 @@ estrictamente exigidos por los recursos que gestione:
 | Recurso gestionado | Alcances |
 |---|---|
 | `pathly_scenario`, `pathly_scenarios` | `scenarios:read`, `scenarios:write` |
+| `pathly_settings` | `org:read`, `org:write` |
 | `pathly_webhook` | `alerting:read`, `alerting:write` |
 | `pathly_maintenance_window` | `maintenance:read`, `maintenance:write` |
 | `pathly_sla_target` | `sla:read`, `sla:write` |
+| `pathly_incidents` | `incidents:read` |
+| `pathly_members` | `members:read` |
+| `pathly_runs`, `pathly_run` | `runs:read` |
+| `pathly_usage` | `org:read` |
 
 Para un pipeline que solo ejecuta `terraform plan`, los alcances `:read` bastan.
 
@@ -77,11 +82,21 @@ API no puede crear otra, ni invitar a una cuenta.
 
 | Nombre | Qué gestiona |
 |---|---|
-| `pathly_scenario` | Escenario de monitorización HTTP o de navegador |
+| `pathly_scenario` | Control HTTP o recorrido de navegador (pasos de solo escritura) |
+| `pathly_settings` | Ajustes de la organización (singleton, destroy no los restablece) |
 | `pathly_maintenance_window` | Ventana de mantenimiento, puntual o semanal |
 | `pathly_webhook` | Webhook de salida firmado |
 | `pathly_sla_target` | Objetivo de disponibilidad y presupuesto de error |
-| `pathly_scenarios` (data source) | Inventario de escenarios, filtrable por etiqueta o carpeta |
+| `pathly_scenarios` | Inventario de escenarios |
+| `pathly_settings` (datos) | Ajustes, solo lectura |
+| `pathly_usage` | Consumo del plan |
+| `pathly_incidents` | Incidentes |
+| `pathly_members` | Miembros, solo lectura |
+| `pathly_runs`, `pathly_run` | Ejecuciones |
+| `pathly_sla`, `pathly_sla_targets` | Objetivos, con o sin medición |
+| `pathly_webhooks` | Webhooks sin su destino |
+| `pathly_maintenance_windows` | Ventanas |
+| `pathly_status_page` | Página de estado pública |
 
 Documentación por recurso en [`docs/`](docs/) (traducción al español en
 [`translations/es/`](translations/es/)), ejemplos completos en
