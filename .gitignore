@@ -1,0 +1,22 @@
+# Provider binary
+terraform-provider-pathly
+terraform-provider-pathly.exe
+dist/
+
+# Coverage: `go test -cover` also leaves instrumented binaries behind.
+cov*
+
+# Terraform state and cache of the examples: the state holds the ids of the
+# resources that were created, and for a webhook its signing secret.
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Local variables: they often carry the API key.
+*.auto.tfvars
+terraform.tfvars
+.env

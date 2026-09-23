@@ -1,0 +1,263 @@
+# CI for the Pathly Terraform provider — tests, examples, signed archives, release.
+#
+# The Terraform Registry does not read this repository: it downloads the archives
+# attached to a release and checks their GPG signature against the public key
+# declared in the account. A release without a valid `SHA256SUMS.sig` is ignored,
+# and `terraform init` then refuses the provider — hence the signing step in CI.
+#
+# The public registry only ingests GitHub releases, though, so this repository
+# stays the working one and feeds a GitHub mirror that exists for that single
+# purpose. The HCP Terraform private registry has no such constraint and is fed
+# straight from here. Either destination works on its own (see README,
+# "Publication"). In both cases the signing key lives here only, instead of being
+# duplicated as a secret on the other platform.
+#
+# CI/CD variables (masked AND protected — without "protected" they would be
+# readable from any branch, so exfiltrable by a single push):
+#   GPG_PRIVATE_KEY  — provider signing key, base64 encoded
+#   GPG_PASSPHRASE   — passphrase for that key
+#   GPG_FINGERPRINT  — fingerprint declared to the registry
+# Public registry only:
+#   GITHUB_TOKEN     — fine-grained GitHub token, `contents: write` on the single
+#                      pathlyhq/terraform-provider-pathly repository
+# HCP private registry only:
+#   TFE_TOKEN        — HCP Terraform token allowed to manage the private registry
+#   TFE_GPG_KEY_ID   — id returned when the public key was registered in the
+#                      organization, see README
+
+stages:
+  - test
+  - validate
+  - publish
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+default:
+  interruptible: true
+
+.tests_rules: &tests_rules
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+test:
+  image: golang:1.26
+  stage: test
+  <<: *tests_rules
+  cache:
+    key: go-mod
+    paths:
+      - .gocache/
+  variables:
+    GOPATH: $CI_PROJECT_DIR/.gocache
+  script:
+    - test -z "$(gofmt -l .)" || (gofmt -l . && echo "Run gofmt -w ." && exit 1)
+    - go vet ./...
+    - go build -o terraform-provider-pathly .
+    - go test ./internal/... -race -coverprofile=covprofile
+    - |
+      total=$(go tool cover -func=covprofile | awk '/^total:/ {print $3}')
+      echo "Coverage: ${total}"
+      # main.go is excluded: it only holds the plugin server, which blocks.
+      [ "${total}" = "100.0%" ] || (echo "Coverage must stay at 100%." && exit 1)
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - terraform-provider-pathly
+
+# The examples are executable documentation: validated against the provider's
+# real schema, they cannot describe an attribute that no longer exists.
+examples:
+  image:
+    name: hashicorp/terraform:1.14.1
+    entrypoint: [""]
+  stage: validate
+  <<: *tests_rules
+  needs:
+    - job: test
+      artifacts: true
+  script:
+    - terraform fmt -check -recursive examples
+    - mkdir -p /tmp/plugins && cp terraform-provider-pathly /tmp/plugins/
+    - |
+      cat > /tmp/dev.tfrc <<'EOF'
+      provider_installation {
+        dev_overrides { "pathlyhq/pathly" = "/tmp/plugins" }
+        direct {}
+      }
+      EOF
+    - export TF_CLI_CONFIG_FILE=/tmp/dev.tfrc
+    - cd examples/minimal && terraform validate
+    - cd ../complete && terraform validate
+
+# The reference documentation exists in three languages, with English canonical
+# because the registry renders `docs/` only. This job fails when a page is added
+# or removed on one side without the others following: a French or Spanish page
+# that silently disappears leaves a reader on a dead link, and a stale
+# translation announcing the wrong API scopes leads to an over-privileged key.
+# It compares file trees, not content — freshness is a review matter.
+docs-translations:
+  image: alpine:3.21
+  stage: validate
+  <<: *tests_rules
+  needs: []
+  script:
+    # POSIX sh on purpose: this image ships busybox, not bash, so no process
+    # substitution.
+    - |
+      (cd docs && find . -name '*.md' | sort) > /tmp/docs.list
+      for lang in fr es; do
+        (cd "translations/${lang}" && find . -name '*.md' | sort) > "/tmp/${lang}.list"
+        if ! diff "/tmp/docs.list" "/tmp/${lang}.list"; then
+          echo "translations/${lang} does not mirror docs/ — see the diff above."
+          exit 1
+        fi
+        echo "translations/${lang}: complete"
+      done
+    - test -f README.fr.md || (echo "README.fr.md missing" && exit 1)
+    - test -f README.es.md || (echo "README.es.md missing" && exit 1)
+
+# ---------------------------------------------------------------------------
+# Publication — build once, publish where you choose
+#
+# `archives` produces the signed artefacts both registries expect. The two
+# publishing jobs only upload them. That split is what makes the destinations
+# independent: the public registry needs a GitHub repository, the HCP private
+# registry needs none, and neither should be a prerequisite of the other.
+#
+# All three are manual and restricted to tags. A published version is immediately
+# consumed by customers' `terraform init` and never comes back.
+# ---------------------------------------------------------------------------
+
+.publish_rules: &publish_rules
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+      when: manual
+      allow_failure: false
+
+archives:
+  image: golang:1.26
+  stage: publish
+  <<: *publish_rules
+  needs:
+    - job: test
+    - job: examples
+  variables:
+    # GoReleaser refuses a shallow clone: it reads the tags to derive the
+    # version, and GitLab clones 20 commits deep by default.
+    GIT_DEPTH: "0"
+  script:
+    - test -n "${GPG_PRIVATE_KEY}" || (echo "GPG_PRIVATE_KEY is missing" && exit 1)
+    - test -n "${GPG_PASSPHRASE}" || (echo "GPG_PASSPHRASE is missing" && exit 1)
+    - test -n "${GPG_FINGERPRINT}" || (echo "GPG_FINGERPRINT is missing" && exit 1)
+    - apt-get update -qq && apt-get install -y -qq gnupg
+    - echo "${GPG_PRIVATE_KEY}" | base64 -d | gpg --batch --import
+    # Pinned version: `@latest` would let a binary nobody reviewed sign the
+    # archives.
+    - go install github.com/goreleaser/goreleaser/v2@v2.18.2
+    - goreleaser release --clean --skip=publish
+  artifacts:
+    expire_in: 30 days
+    paths:
+      - dist/
+
+# Draft release on the GitHub mirror, which is the only thing the public registry
+# reads. Draft on purpose: the registry ingests nothing until it is published by
+# hand, so this job and that click are two separate decisions.
+publish-github:
+  image: golang:1.26
+  stage: publish
+  <<: *publish_rules
+  needs:
+    - job: archives
+      artifacts: true
+  variables:
+    GIT_STRATEGY: none
+    GITHUB_REPO: pathlyhq/terraform-provider-pathly
+  script:
+    - test -n "${GITHUB_TOKEN}" || (echo "GITHUB_TOKEN is missing" && exit 1)
+    - apt-get update -qq && apt-get install -y -qq jq
+    - |
+      set -e
+      api="https://api.github.com/repos/${GITHUB_REPO}"
+      body="{\"tag_name\":\"${CI_COMMIT_TAG}\",\"name\":\"${CI_COMMIT_TAG}\",\"draft\":true}"
+      id=$(curl -sS -f -X POST "${api}/releases" \
+        -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+        -H "Accept: application/vnd.github+json" \
+        -d "${body}" | jq -er '.id')
+      for file in dist/*.zip dist/*SHA256SUMS dist/*SHA256SUMS.sig; do
+        name=$(basename "${file}")
+        curl -sS -f -X POST "https://uploads.github.com/repos/${GITHUB_REPO}/releases/${id}/assets?name=${name}" \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+          -H "Content-Type: application/octet-stream" \
+          --data-binary "@${file}" > /dev/null
+        echo "uploaded ${name}"
+      done
+
+# HCP Terraform private registry. No GitHub anywhere in this path: the archives
+# are pushed straight to the organization's registry over its API, which is the
+# only way to publish a provider there — the console and the VCS connection only
+# handle modules.
+#
+# The result is installable as `app.terraform.io/${TFE_ORG}/pathly`, and only by
+# members of that organization. It is a private distribution channel, not a
+# substitute for the public registry.
+publish-hcp:
+  image: golang:1.26
+  stage: publish
+  <<: *publish_rules
+  needs:
+    - job: archives
+      artifacts: true
+  variables:
+    GIT_STRATEGY: none
+    TFE_HOST: app.terraform.io
+    TFE_ORG: Pathly
+    PROVIDER_NAME: pathly
+  script:
+    - test -n "${TFE_TOKEN}" || (echo "TFE_TOKEN is missing" && exit 1)
+    - test -n "${TFE_GPG_KEY_ID}" || (echo "TFE_GPG_KEY_ID is missing" && exit 1)
+    - apt-get update -qq && apt-get install -y -qq jq
+    - |
+      set -e
+      # The registry wants a bare version, the tag carries a v.
+      version="${CI_COMMIT_TAG#v}"
+      auth="Authorization: Bearer ${TFE_TOKEN}"
+      json="Content-Type: application/vnd.api+json"
+      providers="https://${TFE_HOST}/api/v2/organizations/${TFE_ORG}/registry-providers"
+
+      # Created on the first release only. A second attempt answers 422, which is
+      # not a failure here, so this call is deliberately not checked.
+      body="{\"data\":{\"type\":\"registry-providers\",\"attributes\":{\"name\":\"${PROVIDER_NAME}\",\"namespace\":\"${TFE_ORG}\",\"registry-name\":\"private\"}}}"
+      curl -sS -o /dev/null -X POST "${providers}" -H "${auth}" -H "${json}" -d "${body}" || true
+
+      versions="${providers}/private/${TFE_ORG}/${PROVIDER_NAME}/versions"
+      body="{\"data\":{\"type\":\"registry-provider-versions\",\"attributes\":{\"version\":\"${version}\",\"key-id\":\"${TFE_GPG_KEY_ID}\",\"protocols\":[\"6.0\"]}}}"
+      links=$(curl -sS -f -X POST "${versions}" -H "${auth}" -H "${json}" -d "${body}")
+
+      sums="dist/terraform-provider-${PROVIDER_NAME}_${version}_SHA256SUMS"
+      curl -sS -f -T "${sums}" "$(echo "${links}" | jq -er '.data.links["shasums-upload"]')"
+      curl -sS -f -T "${sums}.sig" "$(echo "${links}" | jq -er '.data.links["shasums-sig-upload"]')"
+
+      # One platform per archive. The os and arch are read back from the file
+      # name rather than hardcoded, so adding a build target to .goreleaser.yml
+      # is enough — this job follows without being edited.
+      for zip in dist/*.zip; do
+        name=$(basename "${zip}")
+        platform="${name%.zip}"
+        platform="${platform#terraform-provider-${PROVIDER_NAME}_${version}_}"
+        os="${platform%_*}"
+        arch="${platform##*_}"
+        shasum=$(grep " ${name}\$" "${sums}" | cut -d ' ' -f 1)
+        body="{\"data\":{\"type\":\"registry-provider-version-platforms\",\"attributes\":{\"os\":\"${os}\",\"arch\":\"${arch}\",\"shasum\":\"${shasum}\",\"filename\":\"${name}\"}}}"
+        upload=$(curl -sS -f -X POST "${versions}/${version}/platforms" -H "${auth}" -H "${json}" -d "${body}" \
+          | jq -er '.data.links["provider-binary-upload"]')
+        curl -sS -f -T "${zip}" "${upload}"
+        echo "published ${os}/${arch}"
+      done

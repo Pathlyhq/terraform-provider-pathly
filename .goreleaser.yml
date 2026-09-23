@@ -1,0 +1,76 @@
+# Release artifacts for the provider.
+#
+# The Terraform Registry only accepts GPG-signed archives accompanied by a
+# manifest: without a signature, `terraform init` refuses the provider. This
+# configuration produces exactly that format.
+version: 2
+
+# Declared explicitly: otherwise GoReleaser infers "pathly", and the registry
+# only ingests archives named `terraform-provider-<name>_<version>_…`.
+project_name: terraform-provider-pathly
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - "-s -w -X main.version={{.Version}}"
+    goos:
+      - linux
+      - darwin
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+      - "386"
+    ignore:
+      - goos: darwin
+        goarch: "386"
+    binary: "{{ .ProjectName }}_v{{ .Version }}"
+
+archives:
+  # The registry only accepts zip, and infers the OS and architecture from the name.
+  - formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
+  algorithm: sha256
+
+signs:
+  - artifacts: checksum
+    # The passphrase goes through standard input: as a command argument it would
+    # be readable in the process table of the runner, which is shared.
+    stdin: "{{ .Env.GPG_PASSPHRASE }}"
+    args:
+      - "--batch"
+      - "--pinentry-mode"
+      - "loopback"
+      - "--passphrase-fd"
+      - "0"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+
+release:
+  # GoReleaser builds and signs, it never publishes. Uploading is the job of the
+  # pipeline, which knows two destinations — the GitHub mirror read by the public
+  # registry, and the HCP Terraform private registry — and neither is reachable
+  # from a `goreleaser release` run against this GitLab remote.
+  #
+  # Disabled rather than left to the `--skip=publish` flag alone: someone running
+  # goreleaser by hand would otherwise cut a release from their workstation, with
+  # whatever happens to be in their working tree.
+  disable: true
+
+changelog:
+  disable: true
