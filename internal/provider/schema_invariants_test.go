@@ -52,6 +52,12 @@ func inspect(a fwschema.Attribute) attributeInfo {
 		info.modifiers = names(typed.PlanModifiers)
 	case fwschema.ListAttribute:
 		info.modifiers = names(typed.PlanModifiers)
+	case fwschema.ListNestedAttribute:
+		info.modifiers = names(typed.PlanModifiers)
+	case fwschema.MapAttribute:
+		info.modifiers = names(typed.PlanModifiers)
+	case fwschema.SingleNestedAttribute:
+		info.modifiers = names(typed.PlanModifiers)
 	}
 	return info
 }
@@ -70,6 +76,10 @@ func names[T any](modifiers []T) []string {
 		case planmodifier.Float64:
 			description = typed.Description(context.Background())
 		case planmodifier.List:
+			description = typed.Description(context.Background())
+		case planmodifier.Map:
+			description = typed.Description(context.Background())
+		case planmodifier.Object:
 			description = typed.Description(context.Background())
 		}
 		out = append(out, description)

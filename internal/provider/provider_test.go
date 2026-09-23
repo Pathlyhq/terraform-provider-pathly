@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	fwprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	fwschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -365,7 +366,7 @@ func TestDataSourcesAreDeclared(t *testing.T) {
 	}
 }
 
-func TestScenarioSchemaRefusesBrowserType(t *testing.T) {
+func TestScenarioSchemaAcceptsBrowserJourneysAndMarksSecrets(t *testing.T) {
 	ctx := context.Background()
 	schemaResp := &resource.SchemaResponse{}
 	NewScenarioResource().Schema(ctx, resource.SchemaRequest{}, schemaResp)
@@ -374,13 +375,20 @@ func TestScenarioSchemaRefusesBrowserType(t *testing.T) {
 	if !ok {
 		t.Fatal("type attribute missing")
 	}
-	// The steps of a browser journey carry login credentials: managing them in
-	// Terraform would put them into the state.
-	if !strings.Contains(attr.GetDescription(), "http") {
+	if !strings.Contains(attr.GetDescription(), "browser") {
 		t.Errorf("description of type = %q", attr.GetDescription())
 	}
-	if !strings.Contains(schemaResp.Schema.MarkdownDescription, "Browser") {
-		t.Error("the resource must say why browser journeys are excluded")
+	// A password typed into a fill step ends up in the state: the attribute
+	// has to be marked, otherwise `terraform show` prints it.
+	steps, ok := schemaResp.Schema.Attributes["steps"].(fwschema.ListNestedAttribute)
+	if !ok {
+		t.Fatal("steps attribute missing")
+	}
+	for _, name := range []string{"value", "username", "password"} {
+		nested, ok := steps.NestedObject.Attributes[name].(fwschema.StringAttribute)
+		if !ok || !nested.IsSensitive() {
+			t.Errorf("steps.%s must be sensitive", name)
+		}
 	}
 }
 

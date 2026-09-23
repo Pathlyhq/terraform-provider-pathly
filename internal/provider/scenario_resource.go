@@ -49,6 +49,15 @@ type scenarioModel struct {
 	LastStatus     types.String `tfsdk:"last_status"`
 	MutedUntil     types.String `tfsdk:"muted_until"`
 	CreatedAt      types.String `tfsdk:"created_at"`
+
+	Steps               types.List   `tfsdk:"steps"`
+	Headers             types.Map    `tfsdk:"headers"`
+	ClickDelayMs        types.Int64  `tfsdk:"click_delay_ms"`
+	Viewport            types.String `tfsdk:"viewport"`
+	Locale              types.String `tfsdk:"locale"`
+	ScenarioTimezone    types.String `tfsdk:"scenario_timezone"`
+	BasicAuth           types.Object `tfsdk:"basic_auth"`
+	ScenarioFingerprint types.String `tfsdk:"scenario_fingerprint"`
 }
 
 func (r *scenarioResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -73,139 +82,146 @@ func (r *scenarioResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 	keepInt64 := []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}
 	keepList := []planmodifier.List{listplanmodifier.UseStateForUnknown()}
 	resp.Schema = schema.Schema{
-		Description: "An HTTP monitoring scenario.",
-		MarkdownDescription: "An HTTP monitoring scenario.\n\n" +
-			"Browser journeys are not managed here: their steps carry login credentials, " +
-			"which a Terraform file and its state would keep in plaintext. Create them in the console.",
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed:      true,
-				Description:   "Identifier assigned by Pathly.",
-				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"name": schema.StringAttribute{
-				Required:    true,
-				Description: "Name displayed in the console and in alerts.",
-				Validators:  []validator.String{stringvalidator.LengthBetween(1, 120)},
-			},
-			"type": schema.StringAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "`http` only. The type of a scenario cannot be changed after creation.",
-				Validators:  []validator.String{stringvalidator.OneOf("http")},
-				// Changing the type would destroy the history of the scenario:
-				// the replacement has to be explicit in the plan. `keepString`
-				// comes first, otherwise a type absent from the configuration
-				// passes for a change and takes the scenario away with it.
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
+		Description: "An HTTP check or a browser journey.",
+		MarkdownDescription: "An HTTP check or a browser journey.\n\n" +
+			"A browser journey is write-only: the API never returns the steps, only `scenario_fingerprint`. " +
+			"A `fill` or `http_auth` step can carry a password — keep those values in a secret store, " +
+			"not in the repository. The state still holds them, marked sensitive.",
+		Attributes: func() map[string]schema.Attribute {
+			attrs := map[string]schema.Attribute{
+				"id": schema.StringAttribute{
+					Computed:      true,
+					Description:   "Identifier assigned by Pathly.",
+					PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				},
-			},
-			"url": schema.StringAttribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "Monitored address, over http or https.",
-				PlanModifiers: keepString,
-			},
-			"enabled": schema.BoolAttribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "When false, the scenario exists but does not run.",
-				PlanModifiers: keepBool,
-			},
-			"interval_sec": schema.Int64Attribute{
-				Required:    true,
-				Description: "Period between two runs, in seconds. 0 for a scenario driven by `cron` only.",
-				Validators:  []validator.Int64{int64validator.Between(0, 2_592_000)},
-			},
-			"method": schema.StringAttribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "`GET` or `HEAD`. A monitor that posts or deletes would act on the site at every run.",
-				Validators:    []validator.String{stringvalidator.OneOf("GET", "HEAD")},
-				PlanModifiers: keepString,
-			},
-			"expected_status": schema.Int64Attribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "Expected HTTP status.",
-				Validators:    []validator.Int64{int64validator.Between(100, 599)},
-				PlanModifiers: keepInt64,
-			},
-			"max_latency_ms": schema.Int64Attribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "Above this, the run is a performance failure.",
-				Validators:    []validator.Int64{int64validator.Between(100, 600_000)},
-				PlanModifiers: keepInt64,
-			},
-			"expect_text": schema.StringAttribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "Text expected in the response. A 200 served by an error page is still a failure.",
-				Validators:    []validator.String{stringvalidator.LengthAtMost(500)},
-				PlanModifiers: keepString,
-			},
-			"regions": schema.ListAttribute{
-				ElementType:   types.StringType,
-				Optional:      true,
-				Computed:      true,
-				Description:   "Probe regions. When empty, Pathly picks the default region of the plan.",
-				Validators:    []validator.List{listvalidator.SizeAtMost(8)},
-				PlanModifiers: keepList,
-			},
-			"tags": schema.ListAttribute{
-				ElementType:   types.StringType,
-				Optional:      true,
-				Computed:      true,
-				Description:   "Free-form tags, used to filter and group.",
-				Validators:    []validator.List{listvalidator.SizeAtMost(10)},
-				PlanModifiers: keepList,
-			},
-			"folder": schema.StringAttribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "Folder used to organize the console.",
-				Validators:    []validator.String{stringvalidator.LengthAtMost(60)},
-				PlanModifiers: keepString,
-			},
-			"severity": schema.StringAttribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "`critical`, `major` or `minor`. Drives escalation.",
-				Validators:    []validator.String{stringvalidator.OneOf("critical", "major", "minor")},
-				PlanModifiers: keepString,
-			},
-			"runbook": schema.StringAttribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "On-call instructions, attached to the alert.",
-				Validators:    []validator.String{stringvalidator.LengthAtMost(2000)},
-				PlanModifiers: keepString,
-			},
-			"cron": schema.StringAttribute{
-				Optional:      true,
-				Computed:      true,
-				Description:   "Cron schedule, in addition to or instead of `interval_sec`.",
-				Validators:    []validator.String{stringvalidator.LengthAtMost(120)},
-				PlanModifiers: keepString,
-			},
-			"last_status": schema.StringAttribute{
-				Computed:    true,
-				Description: "Verdict of the last known run.",
-			},
-			"muted_until": schema.StringAttribute{
-				Computed: true,
-				Description: "Mute deadline, set from the console or the API. " +
-					"Read only here: a mute is a temporary operational gesture, not a desired state.",
-			},
-			"created_at": schema.StringAttribute{
-				Computed:      true,
-				Description:   "Creation date.",
-				PlanModifiers: keepString,
-			},
-		},
+				"name": schema.StringAttribute{
+					Required:    true,
+					Description: "Name displayed in the console and in alerts.",
+					Validators:  []validator.String{stringvalidator.LengthBetween(1, 120)},
+				},
+				"type": schema.StringAttribute{
+					Optional:    true,
+					Computed:    true,
+					Description: "`http` or `browser`. The type of a scenario cannot be changed after creation.",
+					Validators:  []validator.String{stringvalidator.OneOf("http", "browser")},
+					// Changing the type would destroy the history of the scenario:
+					// the replacement has to be explicit in the plan. `keepString`
+					// comes first, otherwise a type absent from the configuration
+					// passes for a change and takes the scenario away with it.
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.UseStateForUnknown(),
+						stringplanmodifier.RequiresReplace(),
+					},
+				},
+				"url": schema.StringAttribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "Monitored address, over http or https.",
+					PlanModifiers: keepString,
+				},
+				"enabled": schema.BoolAttribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "When false, the scenario exists but does not run.",
+					PlanModifiers: keepBool,
+				},
+				"interval_sec": schema.Int64Attribute{
+					Required:    true,
+					Description: "Period between two runs, in seconds. 0 for a scenario driven by `cron` only.",
+					Validators:  []validator.Int64{int64validator.Between(0, 2_592_000)},
+				},
+				"method": schema.StringAttribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "`GET` or `HEAD`. A monitor that posts or deletes would act on the site at every run.",
+					Validators:    []validator.String{stringvalidator.OneOf("GET", "HEAD")},
+					PlanModifiers: keepString,
+				},
+				"expected_status": schema.Int64Attribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "Expected HTTP status.",
+					Validators:    []validator.Int64{int64validator.Between(100, 599)},
+					PlanModifiers: keepInt64,
+				},
+				"max_latency_ms": schema.Int64Attribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "Above this, the run is a performance failure.",
+					Validators:    []validator.Int64{int64validator.Between(100, 600_000)},
+					PlanModifiers: keepInt64,
+				},
+				"expect_text": schema.StringAttribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "Text expected in the response. A 200 served by an error page is still a failure.",
+					Validators:    []validator.String{stringvalidator.LengthAtMost(500)},
+					PlanModifiers: keepString,
+				},
+				"regions": schema.ListAttribute{
+					ElementType:   types.StringType,
+					Optional:      true,
+					Computed:      true,
+					Description:   "Probe regions. When empty, Pathly picks the default region of the plan.",
+					Validators:    []validator.List{listvalidator.SizeAtMost(8)},
+					PlanModifiers: keepList,
+				},
+				"tags": schema.ListAttribute{
+					ElementType:   types.StringType,
+					Optional:      true,
+					Computed:      true,
+					Description:   "Free-form tags, used to filter and group.",
+					Validators:    []validator.List{listvalidator.SizeAtMost(10)},
+					PlanModifiers: keepList,
+				},
+				"folder": schema.StringAttribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "Folder used to organize the console.",
+					Validators:    []validator.String{stringvalidator.LengthAtMost(60)},
+					PlanModifiers: keepString,
+				},
+				"severity": schema.StringAttribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "`critical`, `major` or `minor`. Drives escalation.",
+					Validators:    []validator.String{stringvalidator.OneOf("critical", "major", "minor")},
+					PlanModifiers: keepString,
+				},
+				"runbook": schema.StringAttribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "On-call instructions, attached to the alert.",
+					Validators:    []validator.String{stringvalidator.LengthAtMost(2000)},
+					PlanModifiers: keepString,
+				},
+				"cron": schema.StringAttribute{
+					Optional:      true,
+					Computed:      true,
+					Description:   "Cron schedule, in addition to or instead of `interval_sec`.",
+					Validators:    []validator.String{stringvalidator.LengthAtMost(120)},
+					PlanModifiers: keepString,
+				},
+				"last_status": schema.StringAttribute{
+					Computed:    true,
+					Description: "Verdict of the last known run.",
+				},
+				"muted_until": schema.StringAttribute{
+					Computed: true,
+					Description: "Mute deadline, set from the console or the API. " +
+						"Read only here: a mute is a temporary operational gesture, not a desired state.",
+				},
+				"created_at": schema.StringAttribute{
+					Computed:      true,
+					Description:   "Creation date.",
+					PlanModifiers: keepString,
+				},
+			}
+			for name, attr := range journeyAttributes() {
+				attrs[name] = attr
+			}
+			return attrs
+		}(),
 	}
 }
 
@@ -230,10 +246,11 @@ func (r *scenarioResource) inputFrom(ctx context.Context, m scenarioModel, diags
 		Runbook:        strPtr(m.Runbook),
 		Cron:           strPtr(m.Cron),
 		Enabled:        boolPtr(m.Enabled),
+		Scenario:       astFrom(ctx, m, diags),
 	}
 }
 
-func scenarioToModel(s *client.Scenario) scenarioModel {
+func scenarioToModel(s *client.Scenario, keep scenarioModel) scenarioModel {
 	return scenarioModel{
 		ID:             types.StringValue(s.ID),
 		Name:           types.StringValue(s.Name),
@@ -254,6 +271,16 @@ func scenarioToModel(s *client.Scenario) scenarioModel {
 		LastStatus:     stringFrom(s.LastStatus),
 		MutedUntil:     stringFrom(s.MutedUntil),
 		CreatedAt:      stringFrom(s.CreatedAt),
+		// The API never returns the tree: keeping the plan's copy is the only
+		// way the next plan does not announce the deletion of every step.
+		Steps:               keep.Steps,
+		Headers:             keep.Headers,
+		ClickDelayMs:        keep.ClickDelayMs,
+		Viewport:            keep.Viewport,
+		Locale:              keep.Locale,
+		ScenarioTimezone:    keep.ScenarioTimezone,
+		BasicAuth:           keep.BasicAuth,
+		ScenarioFingerprint: stringFrom(s.ScenarioFingerprint),
 	}
 }
 
@@ -263,14 +290,9 @@ func (r *scenarioResource) Create(ctx context.Context, req resource.CreateReques
 	if resp.Diagnostics.HasError() || r.client == nil {
 		return
 	}
-	if plan.URL.IsNull() || plan.URL.IsUnknown() {
-		// The API would refuse it too, but saying it here names the missing
-		// attribute.
-		resp.Diagnostics.AddAttributeError(
-			path.Root("url"),
-			"Address required",
-			"An HTTP scenario monitors an address: set `url`.",
-		)
+	requireJourneyOrURL(plan, &resp.Diagnostics)
+	firstStepMustBeGoto(ctx, plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -283,7 +305,7 @@ func (r *scenarioResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.AddError("Scenario creation refused", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(created))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(created, plan))...)
 }
 
 func (r *scenarioResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -303,7 +325,7 @@ func (r *scenarioResource) Read(ctx context.Context, req resource.ReadRequest, r
 		resp.Diagnostics.AddError("Cannot read the scenario", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(got))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(got, state))...)
 }
 
 func (r *scenarioResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -315,6 +337,7 @@ func (r *scenarioResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
+	firstStepMustBeGoto(ctx, plan, &resp.Diagnostics)
 	input := r.inputFrom(ctx, plan, &resp.Diagnostics)
 	// The type cannot be modified: sending it would make the whole request be
 	// refused.
@@ -334,7 +357,7 @@ func (r *scenarioResource) Update(ctx context.Context, req resource.UpdateReques
 		resp.Diagnostics.AddError("Scenario update refused", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(updated))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(updated, plan))...)
 }
 
 func (r *scenarioResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
