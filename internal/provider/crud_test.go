@@ -165,6 +165,47 @@ func TestScenarioCreateStoresEverythingTheAPIReturns(t *testing.T) {
 	}
 }
 
+func TestScenarioCreateResolvesUnknownJourneyAttrs(t *testing.T) {
+	// A real plan leaves omitted computed attributes unknown. Copying them
+	// into the state as-is made Terraform refuse the apply: every value must
+	// be known afterwards.
+	ctx := context.Background()
+	r := NewScenarioResource()
+	h := newHarness(t, r, func(_ *harness, w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(scenarioJSON))
+	})
+
+	unknown := func(name string) tftypes.Value {
+		return tftypes.NewValue(h.objType.AttributeTypes[name], tftypes.UnknownValue)
+	}
+	resp := &resource.CreateResponse{State: h.emptyState()}
+	r.Create(ctx, resource.CreateRequest{Plan: h.plan(map[string]tftypes.Value{
+		"name":              str("API health"),
+		"url":               str("https://api.pathlyhq.com/health"),
+		"interval_sec":      num(86400),
+		"steps":             unknown("steps"),
+		"headers":           unknown("headers"),
+		"click_delay_ms":    unknown("click_delay_ms"),
+		"viewport":          unknown("viewport"),
+		"locale":            unknown("locale"),
+		"scenario_timezone": unknown("scenario_timezone"),
+		"basic_auth":        unknown("basic_auth"),
+	})}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("Create: %v", resp.Diagnostics)
+	}
+
+	var state scenarioModel
+	resp.State.Get(ctx, &state)
+	if state.Steps.IsUnknown() || state.Headers.IsUnknown() || state.BasicAuth.IsUnknown() {
+		t.Fatalf("journey collections still unknown: steps=%v headers=%v auth=%v", state.Steps, state.Headers, state.BasicAuth)
+	}
+	if state.ClickDelayMs.IsUnknown() || state.Viewport.IsUnknown() || state.Locale.IsUnknown() || state.ScenarioTimezone.IsUnknown() {
+		t.Fatalf("journey scalars still unknown: delay=%v viewport=%v locale=%v tz=%v", state.ClickDelayMs, state.Viewport, state.Locale, state.ScenarioTimezone)
+	}
+}
+
 func TestScenarioCreateRefusesMissingURL(t *testing.T) {
 	ctx := context.Background()
 	r := NewScenarioResource()

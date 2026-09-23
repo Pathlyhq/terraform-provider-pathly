@@ -127,6 +127,44 @@ func stringsFrom(values []string) types.List {
 	return types.ListValueMust(types.StringType, elements)
 }
 
+// known* replace an unknown planned value with a typed null. Optional
+// computed attributes that the configuration omits are unknown on the first
+// apply: copying them as-is leaves Terraform unable to store the state.
+func knownString(v types.String) types.String {
+	if v.IsUnknown() {
+		return types.StringNull()
+	}
+	return v
+}
+
+func knownInt64(v types.Int64) types.Int64 {
+	if v.IsUnknown() {
+		return types.Int64Null()
+	}
+	return v
+}
+
+func knownList(ctx context.Context, v types.List) types.List {
+	if v.IsUnknown() {
+		return types.ListNull(v.ElementType(ctx))
+	}
+	return v
+}
+
+func knownMap(ctx context.Context, v types.Map) types.Map {
+	if v.IsUnknown() {
+		return types.MapNull(v.ElementType(ctx))
+	}
+	return v
+}
+
+func knownObject(ctx context.Context, v types.Object) types.Object {
+	if v.IsUnknown() {
+		return types.ObjectNull(v.AttributeTypes(ctx))
+	}
+	return v
+}
+
 func stringsTo(ctx context.Context, list types.List, diags *diag.Diagnostics) []string {
 	if list.IsNull() || list.IsUnknown() {
 		return nil

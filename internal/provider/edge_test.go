@@ -336,6 +336,43 @@ func TestMissingAPIFieldsBecomeNull(t *testing.T) {
 	}
 }
 
+func TestKnownHelpersResolveUnknown(t *testing.T) {
+	ctx := context.Background()
+	if !knownString(types.StringUnknown()).IsNull() {
+		t.Error("unknown string must become null")
+	}
+	if !knownInt64(types.Int64Unknown()).IsNull() {
+		t.Error("unknown integer must become null")
+	}
+	if !knownList(ctx, types.ListUnknown(types.StringType)).IsNull() {
+		t.Error("unknown list must become null")
+	}
+	if !knownMap(ctx, types.MapUnknown(types.StringType)).IsNull() {
+		t.Error("unknown map must become null")
+	}
+	if !knownObject(ctx, types.ObjectUnknown(map[string]attr.Type{"username": types.StringType})).IsNull() {
+		t.Error("unknown object must become null")
+	}
+	if got := knownString(types.StringValue("kept")); got.ValueString() != "kept" {
+		t.Errorf("known string = %v", got)
+	}
+	if got := knownInt64(types.Int64Value(3)); got.ValueInt64() != 3 {
+		t.Errorf("known integer = %v", got)
+	}
+	keptList := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("a")})
+	if got := knownList(ctx, keptList); len(got.Elements()) != 1 {
+		t.Errorf("known list = %v", got)
+	}
+	keptMap := types.MapValueMust(types.StringType, map[string]attr.Value{"k": types.StringValue("v")})
+	if got := knownMap(ctx, keptMap); len(got.Elements()) != 1 {
+		t.Errorf("known map = %v", got)
+	}
+	keptObj := types.ObjectValueMust(map[string]attr.Type{"username": types.StringType}, map[string]attr.Value{"username": types.StringValue("u")})
+	if got := knownObject(ctx, keptObj); got.IsNull() {
+		t.Errorf("known object became null: %v", got)
+	}
+}
+
 func TestStringsToRejectsWrongElementType(t *testing.T) {
 	ctx := context.Background()
 	var diags diag.Diagnostics

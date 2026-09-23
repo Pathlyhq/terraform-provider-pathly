@@ -250,7 +250,7 @@ func (r *scenarioResource) inputFrom(ctx context.Context, m scenarioModel, diags
 	}
 }
 
-func scenarioToModel(s *client.Scenario, keep scenarioModel) scenarioModel {
+func scenarioToModel(ctx context.Context, s *client.Scenario, keep scenarioModel) scenarioModel {
 	return scenarioModel{
 		ID:             types.StringValue(s.ID),
 		Name:           types.StringValue(s.Name),
@@ -273,13 +273,15 @@ func scenarioToModel(s *client.Scenario, keep scenarioModel) scenarioModel {
 		CreatedAt:      stringFrom(s.CreatedAt),
 		// The API never returns the tree: keeping the plan's copy is the only
 		// way the next plan does not announce the deletion of every step.
-		Steps:               keep.Steps,
-		Headers:             keep.Headers,
-		ClickDelayMs:        keep.ClickDelayMs,
-		Viewport:            keep.Viewport,
-		Locale:              keep.Locale,
-		ScenarioTimezone:    keep.ScenarioTimezone,
-		BasicAuth:           keep.BasicAuth,
+		// Unknown (omitted computed) becomes a typed null: Terraform refuses a
+		// state that still carries unknown after apply.
+		Steps:               knownList(ctx, keep.Steps),
+		Headers:             knownMap(ctx, keep.Headers),
+		ClickDelayMs:        knownInt64(keep.ClickDelayMs),
+		Viewport:            knownString(keep.Viewport),
+		Locale:              knownString(keep.Locale),
+		ScenarioTimezone:    knownString(keep.ScenarioTimezone),
+		BasicAuth:           knownObject(ctx, keep.BasicAuth),
 		ScenarioFingerprint: stringFrom(s.ScenarioFingerprint),
 	}
 }
@@ -305,7 +307,7 @@ func (r *scenarioResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.AddError("Scenario creation refused", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(created, plan))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(ctx, created, plan))...)
 }
 
 func (r *scenarioResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -325,7 +327,7 @@ func (r *scenarioResource) Read(ctx context.Context, req resource.ReadRequest, r
 		resp.Diagnostics.AddError("Cannot read the scenario", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(got, state))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(ctx, got, state))...)
 }
 
 func (r *scenarioResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -357,7 +359,7 @@ func (r *scenarioResource) Update(ctx context.Context, req resource.UpdateReques
 		resp.Diagnostics.AddError("Scenario update refused", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(updated, plan))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, scenarioToModel(ctx, updated, plan))...)
 }
 
 func (r *scenarioResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
