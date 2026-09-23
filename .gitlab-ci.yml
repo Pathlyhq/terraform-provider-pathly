@@ -144,14 +144,15 @@ docs-translations:
 # independent: the public registry needs a GitHub repository, the HCP private
 # registry needs none, and neither should be a prerequisite of the other.
 #
-# All three are manual and restricted to tags. A published version is immediately
-# consumed by customers' `terraform init` and never comes back.
+# Restricted to tags, started automatically. A published version is immediately
+# consumed by customers' `terraform init` and never comes back: tagging `v*`
+# *is* the publication decision. Next version is v0.1.4 (API still v1, no skip).
 # ---------------------------------------------------------------------------
 
 .publish_rules: &publish_rules
   rules:
     - if: $CI_COMMIT_TAG =~ /^v/
-      when: manual
+      when: on_success
       allow_failure: false
 
 archives:
@@ -187,9 +188,9 @@ archives:
     paths:
       - dist/
 
-# Draft release on the GitHub mirror, which is the only thing the public registry
-# reads. Draft on purpose: the registry ingests nothing until it is published by
-# hand, so this job and that click are two separate decisions.
+# Published release on the GitHub mirror, which is the only thing the public
+# registry reads. Not a draft: the registry ingests the assets as soon as they
+# exist, so there is no second click.
 publish-github:
   image: golang:1.26
   stage: publish
@@ -217,7 +218,7 @@ publish-github:
     - |
       set -e
       api="https://api.github.com/repos/${GITHUB_REPO}"
-      body="{\"tag_name\":\"${CI_COMMIT_TAG}\",\"name\":\"${CI_COMMIT_TAG}\",\"draft\":true}"
+      body="{\"tag_name\":\"${CI_COMMIT_TAG}\",\"name\":\"${CI_COMMIT_TAG}\",\"draft\":false}"
       id=$(curl -sS -f -X POST "${api}/releases" \
         -H "Authorization: Bearer ${GITHUB_TOKEN}" \
         -H "Accept: application/vnd.github+json" \
