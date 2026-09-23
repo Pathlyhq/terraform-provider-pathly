@@ -5,6 +5,12 @@
 // organization settings. API keys are not there, the API refuses them to a key,
 // and members are readable but not writable: a Terraform file that invites an
 // owner turns a repository write into an access grant.
+//
+// Everything else the API exposes is readable through a data source. Three
+// endpoints are left out on purpose, because they are actions rather than
+// states: triggering a run, resetting a comparison baseline, and resolving an
+// incident. Terraform replays a desired state, so an apply run again a week
+// later would trigger them anew — they belong to the API and the console.
 package provider
 
 import (
@@ -150,6 +156,17 @@ func (p *pathlyProvider) Resources(_ context.Context) []func() resource.Resource
 func (p *pathlyProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewScenariosDataSource,
+		NewSettingsDataSource,
+		NewUsageDataSource,
+		NewIncidentsDataSource,
+		NewMembersDataSource,
+		NewRunsDataSource,
+		NewRunDataSource,
+		NewSlaDataSource,
+		NewSlaTargetsDataSource,
+		NewWebhooksDataSource,
+		NewMaintenanceWindowsDataSource,
+		NewStatusPageDataSource,
 	}
 }
 

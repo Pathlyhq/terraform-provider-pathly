@@ -310,24 +310,57 @@ func TestWebhookSecretsAreMarkedSensitive(t *testing.T) {
 	}
 }
 
+// TestDataSourcesAreDeclared pins the read surface of the provider.
+//
+// The expected list is written out rather than derived from the code: a data
+// source dropped from the registration list compiles perfectly and disappears
+// in silence, breaking every configuration that read it. The names themselves
+// are part of the published contract and cannot be changed once released.
 func TestDataSourcesAreDeclared(t *testing.T) {
 	ctx := context.Background()
-	p := New("test")()
-	sources := p.DataSources(ctx)
-	if len(sources) == 0 {
-		t.Fatal("no data source: impossible to take over an existing estate")
+	want := map[string]bool{
+		"pathly_scenarios":           false,
+		"pathly_settings":            false,
+		"pathly_usage":               false,
+		"pathly_incidents":           false,
+		"pathly_members":             false,
+		"pathly_runs":                false,
+		"pathly_run":                 false,
+		"pathly_sla":                 false,
+		"pathly_sla_targets":         false,
+		"pathly_webhooks":            false,
+		"pathly_maintenance_windows": false,
+		"pathly_status_page":         false,
 	}
-	for _, factory := range sources {
+
+	for _, factory := range New("test")().DataSources(ctx) {
 		d := factory()
 		meta := &datasource.MetadataResponse{}
 		d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "pathly"}, meta)
-		if meta.TypeName != "pathly_scenarios" {
-			t.Errorf("data source name = %q", meta.TypeName)
+
+		seen, expected := want[meta.TypeName]
+		if !expected {
+			t.Errorf("data source %q is not in the expected list", meta.TypeName)
+			continue
 		}
+		if seen {
+			t.Errorf("data source %q declared twice", meta.TypeName)
+		}
+		want[meta.TypeName] = true
+
 		schemaResp := &datasource.SchemaResponse{}
 		d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
 		if schemaResp.Diagnostics.HasError() {
 			t.Fatalf("schema of %s: %v", meta.TypeName, schemaResp.Diagnostics)
+		}
+		if schemaResp.Schema.Description == "" {
+			t.Errorf("%s: no description, the registry would publish an empty page", meta.TypeName)
+		}
+	}
+
+	for name, seen := range want {
+		if !seen {
+			t.Errorf("data source %q is no longer registered", name)
 		}
 	}
 }
