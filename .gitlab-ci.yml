@@ -203,6 +203,17 @@ publish-github:
   script:
     - test -n "${GITHUB_TOKEN}" || (echo "GITHUB_TOKEN is missing" && exit 1)
     - apt-get update -qq && apt-get install -y -qq jq
+    # Checked before anything is created: GitHub answers a bare 403 to a write it
+    # refuses, and `curl -f` discards the body that explains why. Reading the
+    # effective permission turns that dead end into an actionable message.
+    - |
+      perm=$(curl -sS -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/${GITHUB_REPO}" | jq -r '.permissions.push // "unreadable"')
+      if [ "${perm}" != "true" ]; then
+        echo "The token cannot write to ${GITHUB_REPO} (permissions.push=${perm})."
+        echo "Grant it Contents: Read and write, and have the organisation approve it."
+        exit 1
+      fi
     - |
       set -e
       api="https://api.github.com/repos/${GITHUB_REPO}"
