@@ -68,7 +68,11 @@ test:
         exit 1
       fi
     - go vet ./...
-    - go build -o terraform-provider-pathly .
+    # Statically linked on purpose: the `examples` job runs this binary inside the
+    # Alpine-based terraform image, which ships musl and no glibc loader. With cgo
+    # left on, Linux reports that missing loader as "no such file or directory",
+    # which reads like the binary is absent when it is merely unrunnable.
+    - CGO_ENABLED=0 go build -o terraform-provider-pathly .
     - go test ./internal/... -race -coverprofile=covprofile
     - |
       total=$(go tool cover -func=covprofile | awk '/^total:/ {print $3}')
@@ -151,7 +155,10 @@ docs-translations:
       allow_failure: false
 
 archives:
-  image: golang:1.26
+  # Ahead of the other jobs because GoReleaser v2.18 requires Go 1.27.1. On 1.26
+  # the toolchain would silently download 1.27 on every release, which is both a
+  # waste and an unpinned dependency fetched at publication time.
+  image: golang:1.27
   stage: publish
   <<: *publish_rules
   needs:
@@ -171,6 +178,10 @@ archives:
     # archives.
     - go install github.com/goreleaser/goreleaser/v2@v2.18.2
     - goreleaser release --clean --skip=publish
+    # GoReleaser lists the manifest in the checksums but leaves it at the repository
+    # root, and `release.disable` means it never copies it. The publishing jobs only
+    # see dist/, so it is placed there under the name the registry expects.
+    - cp terraform-registry-manifest.json "dist/terraform-provider-pathly_${CI_COMMIT_TAG#v}_manifest.json"
   artifacts:
     expire_in: 30 days
     paths:
@@ -200,7 +211,7 @@ publish-github:
         -H "Authorization: Bearer ${GITHUB_TOKEN}" \
         -H "Accept: application/vnd.github+json" \
         -d "${body}" | jq -er '.id')
-      for file in dist/*.zip dist/*SHA256SUMS dist/*SHA256SUMS.sig; do
+      for file in dist/*.zip dist/*_manifest.json dist/*SHA256SUMS dist/*SHA256SUMS.sig; do
         name=$(basename "${file}")
         curl -sS -f -X POST "https://uploads.github.com/repos/${GITHUB_REPO}/releases/${id}/assets?name=${name}" \
           -H "Authorization: Bearer ${GITHUB_TOKEN}" \

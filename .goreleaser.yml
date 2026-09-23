@@ -42,6 +42,13 @@ archives:
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
   algorithm: sha256
+  # The registry reads the supported protocol versions from this manifest, and
+  # rejects any asset absent from the checksums. Without it the provider is
+  # announced as protocol 5.0, and `terraform init` then fails on a provider
+  # built with the plugin framework, which speaks 6.0.
+  extra_files:
+    - glob: terraform-registry-manifest.json
+      name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
 
 signs:
   - artifacts: checksum
