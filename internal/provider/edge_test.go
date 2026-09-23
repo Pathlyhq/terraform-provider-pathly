@@ -50,6 +50,7 @@ func TestUnreadableStateStopsBeforeAnyCall(t *testing.T) {
 		"maintenance_window": NewMaintenanceWindowResource,
 		"webhook":            NewWebhookResource,
 		"sla_target":         NewSlaTargetResource,
+		"settings":           NewSettingsResource,
 	}
 
 	for name, factory := range resources {
@@ -73,6 +74,15 @@ func TestUnreadableStateStopsBeforeAnyCall(t *testing.T) {
 
 		deleteResp := &resource.DeleteResponse{State: h.emptyState()}
 		r.Delete(ctx, resource.DeleteRequest{State: h.corruptState()}, deleteResp)
+		if name == "settings" {
+			// The settings are the exception: there is nothing to delete, so
+			// Delete reads no state and an unreadable one cannot stop something
+			// that was never going to happen.
+			if deleteResp.Diagnostics.HasError() {
+				t.Errorf("settings: Delete must not fail: %v", deleteResp.Diagnostics)
+			}
+			continue
+		}
 		if !deleteResp.Diagnostics.HasError() {
 			// A silent deletion would make a resource that keeps running, and
 			// keeps billing, disappear from the state.
@@ -88,6 +98,7 @@ func TestUnreadablePlanStopsUpdateWhereItExists(t *testing.T) {
 	for name, factory := range map[string]func() resource.Resource{
 		"scenario":   NewScenarioResource,
 		"sla_target": NewSlaTargetResource,
+		"settings":   NewSettingsResource,
 	} {
 		r := factory()
 		h := newHarness(t, r, func(_ *harness, w http.ResponseWriter, _ *http.Request) {

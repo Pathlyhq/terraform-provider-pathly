@@ -274,8 +274,20 @@ func TestImportPassesIdentifierToState(t *testing.T) {
 		// would propose to create the adopted resource a second time.
 		var id types.String
 		resp.Diagnostics.Append(resp.State.GetAttribute(ctx, pathRootID(), &id)...)
-		if id.ValueString() != "imported-resource" {
-			t.Errorf("imported identifier = %q", id.ValueString())
+
+		meta := &resource.MetadataResponse{}
+		factory().Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "pathly"}, meta)
+
+		// The settings are the documented exception: the organization holds
+		// exactly one, so the identifier typed on the command line is replaced
+		// by the fixed one rather than trusted. A typo must not produce a state
+		// pointing at nothing.
+		want := "imported-resource"
+		if meta.TypeName == "pathly_settings" {
+			want = settingsID
+		}
+		if id.ValueString() != want {
+			t.Errorf("%s: imported identifier = %q, want %q", meta.TypeName, id.ValueString(), want)
 		}
 	}
 }

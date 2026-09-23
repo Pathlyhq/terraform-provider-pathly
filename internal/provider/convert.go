@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/pathlyhq/terraform-provider-pathly/internal/client"
 )
 
 // Conversions between the Terraform model and the client structures.
@@ -75,6 +77,36 @@ func float64From(p *float64) types.Float64 {
 		return types.Float64Null()
 	}
 	return types.Float64Value(*p)
+}
+
+// numberFrom renders a value the API may have quoted as a Terraform number.
+func numberFrom(p *client.Number) types.Float64 {
+	return float64From(p.Float())
+}
+
+// int64sFrom renders a Terraform list of numbers from a Go slice.
+//
+// Same rule as stringsFrom: an empty slice becomes an empty list, because the
+// API answers `[]` for "no threshold" and turning that into null would show a
+// difference on every plan.
+func int64sFrom(values []int64) types.List {
+	if values == nil {
+		return types.ListNull(types.Int64Type)
+	}
+	elements := make([]attr.Value, 0, len(values))
+	for _, v := range values {
+		elements = append(elements, types.Int64Value(v))
+	}
+	return types.ListValueMust(types.Int64Type, elements)
+}
+
+func int64sTo(ctx context.Context, list types.List, diags *diag.Diagnostics) []int64 {
+	if list.IsNull() || list.IsUnknown() {
+		return nil
+	}
+	var out []int64
+	diags.Append(list.ElementsAs(ctx, &out, false)...)
+	return out
 }
 
 // stringsFrom renders a Terraform list from a Go slice.

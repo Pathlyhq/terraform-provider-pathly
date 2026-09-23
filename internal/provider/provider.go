@@ -1,10 +1,10 @@
 // Package provider exposes the Pathly resources to Terraform.
 //
-// Core choice: the provider only manages what makes sense as declarative
-// infrastructure — scenarios, maintenance windows, webhooks, SLA targets. API
-// keys and members are not there, the API refuses them to a key (a key that
-// issues keys cancels every scope, and a Terraform file that invites an owner
-// is an escalation through a detour).
+// Core choice: the provider only writes what makes sense as declarative
+// infrastructure — scenarios, maintenance windows, webhooks, SLA targets and the
+// organization settings. API keys are not there, the API refuses them to a key,
+// and members are readable but not writable: a Terraform file that invites an
+// owner turns a repository write into an access grant.
 package provider
 
 import (
@@ -143,6 +143,7 @@ func (p *pathlyProvider) Resources(_ context.Context) []func() resource.Resource
 		NewMaintenanceWindowResource,
 		NewWebhookResource,
 		NewSlaTargetResource,
+		NewSettingsResource,
 	}
 }
 
