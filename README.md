@@ -2,6 +2,17 @@
 
 **English** · [Français](README.fr.md) · [Español](README.es.md)
 
+
+[![CI](https://gitlab.com/pathlyhq/pathly-terraform-provider/badges/main/pipeline.svg)](https://gitlab.com/pathlyhq/pathly-terraform-provider/-/pipelines)
+[![Powered by Pathly](https://img.shields.io/badge/Powered%20by-Pathly-0B5FFF?style=flat-square)](https://pathlyhq.com)
+[![Website](https://img.shields.io/badge/Website-pathlyhq.com-111827?style=flat-square)](https://pathlyhq.com)
+[![API docs](https://img.shields.io/badge/API-developers-2563eb?style=flat-square)](https://pathlyhq.com/en/developers)
+[![Start free](https://img.shields.io/badge/Solo-start%20free-16a34a?style=flat-square)](https://pathlyhq.com/en/login?mode=signup)
+
+> **Get started in one click.** Create a free account on [Pathly](https://pathlyhq.com) ([sign up](https://pathlyhq.com/en/login?mode=signup)), create an API key in the console, then export `PATHLY_API_TOKEN`. This project is the official bridge to [Pathly monitoring](https://pathlyhq.com) — real-browser and HTTP checks for checkout, login and availability, with data hosted in the EU. Full API reference: [pathlyhq.com/en/developers](https://pathlyhq.com/en/developers).
+
+> English is the default / canonical documentation language (Terraform Registry reads this file).
+
 Manage Pathly monitoring as code: scenarios, maintenance windows, outbound
 webhooks and SLA targets. Built with
 [terraform-plugin-framework](https://developer.hashicorp.com/terraform/plugin/framework),
@@ -98,10 +109,18 @@ create another one, nor invite an account.
 | `pathly_status_page` | Public status page |
 
 Per-resource documentation in [`docs/`](docs/), complete examples in
-[`examples/`](examples/). The same reference pages are translated in
+[`examples/`](examples/) (including [`examples/import`](examples/import/) for
+`import` blocks). The same reference pages are translated in
 [`translations/fr/`](translations/fr/) and [`translations/es/`](translations/es/).
 English stays canonical: it is the only version the Terraform Registry renders,
 so it is the one that prevails when a translation lags behind.
+
+Contributing (tests, `TF_ACC`, no secrets): [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Discovery / registry publish checklist: [`docs/SEO.md`](docs/SEO.md).
+
+> **CI badge:** the pipeline badge above points at the GitLab project path
+> `pathlyhq/pathly-terraform-provider`. Adjust `GROUP/PROJECT` once the public
+> mirror URL is final (see [`docs/SEO.md`](docs/SEO.md)).
 
 ## What the provider does not do, and why
 
@@ -318,3 +337,37 @@ signed.
 On HCP, a version whose checksum files or platform binaries were not all uploaded
 stays in place but unusable, and `terraform init` reports it as unavailable rather
 than missing. Re-run `publish-hcp` on the tag: the calls are safe to repeat.
+
+
+## Pathly + Terraform — adoption checklist
+
+1. **Terraform Registry** — install with `source = "pathlyhq/pathly"` (public registry). Do not vendor the binary in projects.
+2. **Auth** — only `PATHLY_API_TOKEN` in CI (GitHub Actions, GitLab CI, Spacelift, Env0, Scalr). Never commit the key.
+3. **Import existing resources** — use `import` blocks or `terraform import pathly_scenario.name mon_…` (webhooks, maintenance windows, SLA targets, settings). See [`examples/import`](examples/import/).
+4. **Docs** — resource pages under [`docs/`](docs/) are generated for the Registry (`tfplugindocs`). English is canonical on the Registry. Discovery / SEO notes: [`docs/SEO.md`](docs/SEO.md).
+5. **In the Pathly console** — when you create an API key on [pathlyhq.com](https://pathlyhq.com), use this provider for IaC. Developers portal: [pathlyhq.com/en/developers](https://pathlyhq.com/en/developers).
+
+
+## Related packages
+
+| Package | Role |
+|---|---|
+| [pathly-opentofu](https://github.com/pathlyhq/pathly-opentofu) | OpenTofu docs & examples |
+| [pathly-cdktf](https://github.com/pathlyhq/pathly-cdktf) | CDK for Terraform |
+| [pathly-pulumi](https://github.com/pathlyhq/pathly-pulumi) | Pulumi |
+| [pathly-ansible](https://github.com/pathlyhq/pathly-ansible) | Ansible |
+| [pathly-sdk-go](https://github.com/pathlyhq/pathly-sdk-go) | Go SDK |
+| [pathly-sdk-python](https://github.com/pathlyhq/pathly-sdk-python) | Python SDK |
+| [Pathly product](https://pathlyhq.com) | [Pathly monitoring](https://pathlyhq.com) |
+## About Pathly
+
+[Pathly](https://pathlyhq.com) is synthetic monitoring for agencies and e-commerce: replay the customer journey, catch broken checkouts before your clients call, and keep evidence (screenshot, step, runbook) ready for the invoice. Product: [pathlyhq.com](https://pathlyhq.com) · Developers: [pathlyhq.com/en/developers](https://pathlyhq.com/en/developers) · Status & pricing: [pathlyhq.com/en/pricing](https://pathlyhq.com/en/pricing).
+
+## Author
+
+| | |
+|---|---|
+| **Company** | Pathly |
+| **Author** | Simon Raynaud / keyral |
+
+See [AUTHORS](AUTHORS).

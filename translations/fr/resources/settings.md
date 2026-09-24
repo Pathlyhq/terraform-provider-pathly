@@ -60,6 +60,13 @@ Vérifiez qu'aucun ne nomme un hôte interne.
 Le schéma détaillé est dans la [version anglaise](../../../docs/resources/settings.md).
 Portées : `org:read` pour rafraîchir, `org:write` pour modifier.
 
+```terraform
+import {
+  to = pathly_settings.this
+  id = "settings"
+}
+```
+
 ```sh
 terraform import pathly_settings.this settings
 ```

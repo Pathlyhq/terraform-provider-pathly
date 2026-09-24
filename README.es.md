@@ -1,5 +1,16 @@
 # Pathly Terraform Provider
 
+[English](README.md) · [Français](README.fr.md) · **Español**
+
+
+[![CI](https://gitlab.com/pathlyhq/pathly-terraform-provider/badges/main/pipeline.svg)](https://gitlab.com/pathlyhq/pathly-terraform-provider/-/pipelines)
+[![Powered by Pathly](https://img.shields.io/badge/Powered%20by-Pathly-0B5FFF?style=flat-square)](https://pathlyhq.com)
+[![Website](https://img.shields.io/badge/Website-pathlyhq.com-111827?style=flat-square)](https://pathlyhq.com)
+[![API docs](https://img.shields.io/badge/API-developers-2563eb?style=flat-square)](https://pathlyhq.com/es/developers)
+[![Start free](https://img.shields.io/badge/Solo-start%20free-16a34a?style=flat-square)](https://pathlyhq.com/es/login?mode=signup)
+
+> **Empiece en un clic.** Cree una cuenta gratuita en [Pathly](https://pathlyhq.com) ([registro](https://pathlyhq.com/es/login?mode=signup)), genere una clave API en la consola y exporte `PATHLY_API_TOKEN`. Este repositorio es el puente oficial hacia [la monitorización Pathly](https://pathlyhq.com): comprobaciones HTTP y de navegador (carrito, login, disponibilidad), con datos en la UE. Referencia API: [pathlyhq.com/es/developers](https://pathlyhq.com/es/developers).
+
 > **La versión en inglés es la canónica.** Es la única que lee el Terraform
 > Registry y la que prevalece en caso de divergencia con esta traducción:
 > [`README.md`](README.md).
@@ -330,3 +341,36 @@ plataforma no se hayan subido todos permanece en su sitio pero inutilizable, y
 `terraform init` la reporta como no disponible en lugar de ausente. Vuelva a
 ejecutar `publish-hcp` sobre la etiqueta: las llamadas se pueden repetir sin
 riesgo.
+
+## Pathly + Terraform — lista de adopción
+
+1. **Terraform Registry** — `source = "pathlyhq/pathly"`. No vendoring del binario.
+2. **Auth** — solo `PATHLY_API_TOKEN` en CI. Nunca la clave en Git.
+3. **Import** — `terraform import pathly_scenario.name mon_…` para traer monitores creados en la consola.
+4. **Docs** — páginas en [`docs/`](docs/) para el Registry (`tfplugindocs`). El inglés es canónico en el Registry.
+5. **Consola Pathly** — cree la clave API en [pathlyhq.com](https://pathlyhq.com). [Desarrolladores](https://pathlyhq.com/es/developers).
+
+
+## Paquetes relacionados
+
+| Package | Role |
+|---|---|
+| [pathly-opentofu](https://github.com/pathlyhq/pathly-opentofu) | OpenTofu docs & examples |
+| [pathly-cdktf](https://github.com/pathlyhq/pathly-cdktf) | CDK for Terraform |
+| [pathly-pulumi](https://github.com/pathlyhq/pathly-pulumi) | Pulumi |
+| [pathly-ansible](https://github.com/pathlyhq/pathly-ansible) | Ansible |
+| [pathly-sdk-go](https://github.com/pathlyhq/pathly-sdk-go) | Go SDK |
+| [pathly-sdk-python](https://github.com/pathlyhq/pathly-sdk-python) | Python SDK |
+| [Pathly product](https://pathlyhq.com) | [Pathly monitoring](https://pathlyhq.com) |
+## Acerca de Pathly
+
+[Pathly](https://pathlyhq.com) es monitorización sintética para agencias y e-commerce: reproduce el recorrido del cliente, detecta un checkout roto antes de la llamada, y deja la prueba (captura, paso, runbook) lista para la factura. Producto: [pathlyhq.com](https://pathlyhq.com) · Desarrolladores: [pathlyhq.com/es/developers](https://pathlyhq.com/es/developers) · Precios: [pathlyhq.com/es/pricing](https://pathlyhq.com/es/pricing).
+
+## Autor
+
+| | |
+|---|---|
+| **Empresa** | Pathly |
+| **Autor** | Simon Raynaud / keyral |
+
+Véase [AUTHORS](AUTHORS).

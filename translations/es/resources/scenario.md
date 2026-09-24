@@ -117,9 +117,19 @@ siguiente apply escribe el árbol de la configuración encima del de la consola.
 
 ## Import
 
+Prefiera un bloque `import` (Terraform / OpenTofu ≥ 1.5); la forma CLI es
+equivalente.
+
+```terraform
+import {
+  to = pathly_scenario.checkout
+  id = "mon_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_scenario.checkout mon_01H8ZK…
 ```
 
 Tras importar un recorrido de navegador, vuelva a declarar `steps`: la API
-nunca los devuelve.
+nunca los devuelve. Ejemplo completo: `examples/import` (inglés canónico).

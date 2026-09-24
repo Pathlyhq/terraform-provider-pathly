@@ -64,6 +64,18 @@ Every attribute **forces replacement**.
 
 ## Import
 
+Bring an existing window into state. Prefer an `import` block (Terraform /
+OpenTofu ≥ 1.5); the CLI form is equivalent.
+
+```terraform
+import {
+  to = pathly_maintenance_window.backup
+  id = "mw_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_maintenance_window.backup mw_01H8ZK…
 ```
+
+Full working example: [`examples/import`](../../examples/import/).

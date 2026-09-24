@@ -70,6 +70,15 @@ Todos los atributos **fuerzan el reemplazo**.
 
 ## Importación
 
+Prefiera un bloque `import` (Terraform / OpenTofu ≥ 1.5).
+
+```terraform
+import {
+  to = pathly_maintenance_window.backup
+  id = "mw_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_maintenance_window.backup mw_01H8ZK…
 ```

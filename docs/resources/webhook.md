@@ -69,6 +69,16 @@ terraform output -raw webhook_secret | az keyvault secret set --vault-name … -
 
 ## Import
 
+Bring an existing webhook into state. Prefer an `import` block (Terraform /
+OpenTofu ≥ 1.5); the CLI form is equivalent.
+
+```terraform
+import {
+  to = pathly_webhook.alerts
+  id = "wh_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_webhook.alerts wh_01H8ZK…
 ```
@@ -76,4 +86,4 @@ terraform import pathly_webhook.alerts wh_01H8ZK…
 ~> The import emits a warning: the API returns neither the URL nor the secret.
 State `url` again in the configuration, otherwise the plan would propose a
 replacement, and fetch the secret back from your vault, since it was only
-displayed at creation time.
+displayed at creation time. Full working example: [`examples/import`](../../examples/import/).

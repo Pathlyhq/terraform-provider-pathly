@@ -95,12 +95,22 @@ console. Sending a zero would erase them on the first apply.
 
 ## Import
 
+Bring the organization settings into state. Prefer an `import` block
+(Terraform / OpenTofu ≥ 1.5); the CLI form is equivalent.
+
+```terraform
+import {
+  to = pathly_settings.this
+  id = "settings"
+}
+```
+
 ```sh
 terraform import pathly_settings.this settings
 ```
 
-The identifier on the command line is ignored: there is only one settings
-object.
+The identifier is ignored: there is only one settings object. Full working
+example: [`examples/import`](../../examples/import/).
 
 ## Required scopes
 

@@ -108,6 +108,7 @@ examples:
     - export TF_CLI_CONFIG_FILE=/tmp/dev.tfrc
     - cd examples/minimal && terraform validate
     - cd ../complete && terraform validate
+    - cd ../import && terraform validate
 
 # The reference documentation exists in three languages, with English canonical
 # because the registry renders `docs/` only. This job fails when a page is added

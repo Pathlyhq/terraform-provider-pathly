@@ -123,9 +123,19 @@ prochain apply écrit l'arbre de la configuration par-dessus celui de la console
 
 ## Import
 
+Préférez un bloc `import` (Terraform / OpenTofu ≥ 1.5) ; la forme CLI est
+équivalente.
+
+```terraform
+import {
+  to = pathly_scenario.checkout
+  id = "mon_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_scenario.checkout mon_01H8ZK…
 ```
 
 Après l'import d'un parcours navigateur, redéclarez les `steps` : l'API ne les
-renvoie jamais.
+renvoie jamais. Exemple complet : dépôt `examples/import` (anglais canonique).

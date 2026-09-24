@@ -60,6 +60,18 @@ error.
 
 ## Import
 
+Bring an existing target into state. Prefer an `import` block (Terraform /
+OpenTofu ≥ 1.5); the CLI form is equivalent.
+
+```terraform
+import {
+  to = pathly_sla_target.checkout
+  id = "sla_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_sla_target.checkout sla_01H8ZK…
 ```
+
+Full working example: [`examples/import`](../../examples/import/).

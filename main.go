@@ -1,5 +1,7 @@
 // Provider Terraform pour Pathly.
 //
+// Company: Pathly. Author: Simon Raynaud / keyral.
+//
 // Compilation locale, puis déclaration dans ~/.terraformrc via un
 // dev_overrides : voir README.md.
 package main

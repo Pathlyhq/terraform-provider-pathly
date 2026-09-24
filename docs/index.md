@@ -97,3 +97,12 @@ precedence over the attributes of the block.
   console.
 - **Incident muting** — a temporary operational gesture. `muted_until` is
   read-only.
+
+## Author
+
+| | |
+|---|---|
+| **Company** | Pathly |
+| **Author** | Simon Raynaud / keyral |
+
+See [AUTHORS](../AUTHORS).

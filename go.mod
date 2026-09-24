@@ -1,3 +1,4 @@
+// Official Pathly Terraform / OpenTofu provider — https://pathlyhq.com · https://pathlyhq.com/en/developers
 module github.com/pathlyhq/terraform-provider-pathly
 
 go 1.26.2

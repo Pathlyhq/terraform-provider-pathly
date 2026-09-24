@@ -20,3 +20,27 @@ crash.*.log
 *.auto.tfvars
 terraform.tfvars
 .env
+
+# bootstrap safety
+.env
+.env.*
+!.env.example
+node_modules/
+vendor/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+dist/
+lib/
+bin/
+*.egg-info/
+.DS_Store
+.idea/
+.vscode/
+
+.env
+.env.*

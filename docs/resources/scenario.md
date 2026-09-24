@@ -198,10 +198,20 @@ next apply writes the configuration tree over whatever the console had.
 
 ## Import
 
+Bring an existing scenario into state. Prefer an `import` block (Terraform /
+OpenTofu ≥ 1.5) checked into the repository; the CLI form is equivalent.
+
+```terraform
+import {
+  to = pathly_scenario.checkout
+  id = "mon_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_scenario.checkout mon_01H8ZK…
 ```
 
 The identifier can be read from the scenario URL in the console. After the
 import of a browser journey, state the `steps` again: the API never returns
-them.
+them. Full working example: [`examples/import`](../../examples/import/).

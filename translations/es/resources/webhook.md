@@ -76,6 +76,16 @@ terraform output -raw webhook_secret | az keyvault secret set --vault-name … -
 
 ## Importación
 
+Prefiera un bloque `import` (Terraform / OpenTofu ≥ 1.5); la forma CLI es
+equivalente.
+
+```terraform
+import {
+  to = pathly_webhook.alerts
+  id = "wh_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_webhook.alerts wh_01H8ZK…
 ```

@@ -60,6 +60,13 @@ disponibilidad. Compruebe que ninguno nombra un host interno.
 El esquema detallado está en la [versión inglesa](../../../docs/resources/settings.md).
 Ámbitos: `org:read` para refrescar, `org:write` para cambiar.
 
+```terraform
+import {
+  to = pathly_settings.this
+  id = "settings"
+}
+```
+
 ```sh
 terraform import pathly_settings.this settings
 ```

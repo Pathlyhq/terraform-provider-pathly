@@ -66,6 +66,15 @@ scénario sera donc adopté par le premier `apply`, sans erreur de conflit.
 
 ## Import
 
+Préférez un bloc `import` (Terraform / OpenTofu ≥ 1.5).
+
+```terraform
+import {
+  to = pathly_sla_target.checkout
+  id = "sla_01H8ZK…"
+}
+```
+
 ```sh
 terraform import pathly_sla_target.checkout sla_01H8ZK…
 ```
