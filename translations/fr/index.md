@@ -12,6 +12,8 @@ description: |-
 
 # Pathly Provider
 
+**Pour utiliser ce provider, vous avez besoin d’une clé API. Obtenez votre clé gratuite en vous inscrivant ici : [https://pathlyhq.com/fr/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta](https://pathlyhq.com/fr/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta).**
+
 Décrivez la surveillance Pathly comme le reste de votre infrastructure : relue
 dans une *pull request*, appliquée par la CI, identique d'un environnement à
 l'autre.
@@ -38,6 +40,8 @@ resource "pathly_scenario" "checkout" {
 ```
 
 ## Authentification
+
+**Pour utiliser ce provider, vous avez besoin d’une clé API. Obtenez votre clé gratuite en vous inscrivant ici : [https://pathlyhq.com/fr/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta](https://pathlyhq.com/fr/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta).**
 
 ```sh
 export PATHLY_API_TOKEN="sp_…"

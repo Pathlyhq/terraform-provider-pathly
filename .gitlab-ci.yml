@@ -219,13 +219,32 @@ publish-github:
     - |
       set -e
       api="https://api.github.com/repos/${GITHUB_REPO}"
-      body="{\"tag_name\":\"${CI_COMMIT_TAG}\",\"name\":\"${CI_COMMIT_TAG}\",\"draft\":false}"
-      id=$(curl -sS -f -X POST "${api}/releases" \
-        -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-        -H "Accept: application/vnd.github+json" \
-        -d "${body}" | jq -er '.id')
-      for file in dist/*.zip dist/*_manifest.json dist/*SHA256SUMS dist/*SHA256SUMS.sig; do
+      # Idempotent: a previous failed attempt may have left an empty release.
+      id=$(curl -sS -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+        "${api}/releases/tags/${CI_COMMIT_TAG}" | jq -r '.id // empty')
+      if [ -z "${id}" ]; then
+        body="{\"tag_name\":\"${CI_COMMIT_TAG}\",\"name\":\"${CI_COMMIT_TAG}\",\"draft\":false}"
+        id=$(curl -sS -f -X POST "${api}/releases" \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+          -H "Accept: application/vnd.github+json" \
+          -d "${body}" | jq -er '.id')
+      else
+        echo "Reusing existing GitHub release id=${id} for ${CI_COMMIT_TAG}"
+      fi
+      shopt -s nullglob
+      files=(dist/*.zip dist/*_manifest.json dist/*SHA256SUMS dist/*SHA256SUMS.sig)
+      if [ "${#files[@]}" -eq 0 ]; then
+        echo "No artefacts in dist/ — archives job must succeed first."
+        exit 1
+      fi
+      existing=$(curl -sS -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+        "${api}/releases/${id}/assets" | jq -r '.[].name')
+      for file in "${files[@]}"; do
         name=$(basename "${file}")
+        if echo "${existing}" | grep -Fxq "${name}"; then
+          echo "skip ${name} (already uploaded)"
+          continue
+        fi
         curl -sS -f -X POST "https://uploads.github.com/repos/${GITHUB_REPO}/releases/${id}/assets?name=${name}" \
           -H "Authorization: Bearer ${GITHUB_TOKEN}" \
           -H "Content-Type: application/octet-stream" \

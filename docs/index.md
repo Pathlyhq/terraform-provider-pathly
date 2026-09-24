@@ -6,6 +6,8 @@ description: |-
 
 # Pathly Provider
 
+**To use this provider, you need an API key. Get your free API key by signing up here: [https://pathlyhq.com/en/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta](https://pathlyhq.com/en/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta).**
+
 Describe Pathly monitoring like the rest of your infrastructure: reviewed in a
 *pull request*, applied by CI, identical from one environment to the next.
 
@@ -31,6 +33,8 @@ resource "pathly_scenario" "checkout" {
 ```
 
 ## Authentication
+
+**To use this provider, you need an API key. Get your free API key by signing up here: [https://pathlyhq.com/en/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta](https://pathlyhq.com/en/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta).**
 
 ```sh
 export PATHLY_API_TOKEN="sp_…"

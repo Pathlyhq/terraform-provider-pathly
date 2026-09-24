@@ -10,6 +10,8 @@ description: |-
 
 # Pathly Provider
 
+**Para usar este provider necesita una clave API. Obtenga su clave gratuita registrándose aquí: [https://pathlyhq.com/es/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta](https://pathlyhq.com/es/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta).**
+
 Describa la monitorización de Pathly igual que el resto de su infraestructura:
 revisada en una *pull request*, aplicada por la CI, idéntica de un entorno a
 otro.
@@ -36,6 +38,8 @@ resource "pathly_scenario" "checkout" {
 ```
 
 ## Autenticación
+
+**Para usar este provider necesita una clave API. Obtenga su clave gratuita registrándose aquí: [https://pathlyhq.com/es/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta](https://pathlyhq.com/es/login?mode=signup&utm_source=terraform_registry&utm_medium=docs&utm_campaign=signup_cta).**
 
 ```sh
 export PATHLY_API_TOKEN="sp_…"
