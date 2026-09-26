@@ -436,3 +436,98 @@ func TestAstFromRefusesBrokenConversionsAndDropsEmptyHeaders(t *testing.T) {
 		t.Error("unreadable steps must surface on the first-step check")
 	}
 }
+
+func hopsType(t *testing.T) tftypes.Object {
+	t.Helper()
+	schemaResp := &resource.SchemaResponse{}
+	NewScenarioResource().Schema(context.Background(), resource.SchemaRequest{}, schemaResp)
+	attr, ok := schemaResp.Schema.Attributes["http_chain"].(fwschema.ListNestedAttribute)
+	if !ok {
+		t.Fatal("http_chain missing from the schema")
+	}
+	return attr.NestedObject.Type().TerraformType(context.Background()).(tftypes.Object)
+}
+
+func hopsList(t *testing.T, hops ...map[string]tftypes.Value) tftypes.Value {
+	t.Helper()
+	typ := hopsType(t)
+	elems := make([]tftypes.Value, 0, len(hops))
+	for _, hop := range hops {
+		elems = append(elems, object(typ, hop))
+	}
+	return tftypes.NewValue(tftypes.List{ElementType: typ}, elems)
+}
+
+func TestChainScenarioSendsHopsWithoutURL(t *testing.T) {
+	ctx := context.Background()
+	r := NewScenarioResource()
+	h := newHarness(t, r, func(_ *harness, w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(201)
+		_, _ = w.Write([]byte(scenarioJSON))
+	})
+	resp := &resource.CreateResponse{State: h.emptyState()}
+	r.Create(ctx, resource.CreateRequest{Plan: h.plan(map[string]tftypes.Value{
+		"name":         str("Login then me"),
+		"interval_sec": num(300),
+		"http_chain": hopsList(t,
+			map[string]tftypes.Value{
+				"name":          str("login"),
+				"method":        str("POST"),
+				"url":           str("https://api.example.com/login"),
+				"body":          str(`{"u":"a"}`),
+				"assert_status": num(200),
+				"headers": tftypes.NewValue(
+					tftypes.Map{ElementType: tftypes.String},
+					map[string]tftypes.Value{"Content-Type": str("application/json")},
+				),
+				"extract_json_path": str("$.token"),
+				"extract_json_as":   str("token"),
+			},
+			map[string]tftypes.Value{
+				"method":         str("GET"),
+				"url":            str("https://api.example.com/me"),
+				"expect_text":    str("id"),
+				"wait_ms":        num(50),
+				"extract_cookie": str("sid"),
+			},
+		),
+	})}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("Create: %v", resp.Diagnostics)
+	}
+	chain, _ := h.bodies[0]["httpChain"].([]any)
+	if len(chain) != 2 {
+		t.Fatalf("httpChain = %v", h.bodies[0]["httpChain"])
+	}
+	first, _ := chain[0].(map[string]any)
+	if first["method"] != "POST" || first["url"] != "https://api.example.com/login" {
+		t.Errorf("first hop = %v", first)
+	}
+	headers, _ := first["headers"].(map[string]any)
+	if headers["Content-Type"] != "application/json" {
+		t.Errorf("headers = %v", headers)
+	}
+	extract, _ := first["extractJson"].(map[string]any)
+	if extract["path"] != "$.token" || extract["as"] != "token" {
+		t.Errorf("extractJson = %v", extract)
+	}
+}
+
+func TestHopsFromCoversEdges(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	if hopsFrom(ctx, scenarioModel{}, &diags) != nil {
+		t.Error("null chain must yield no hops")
+	}
+
+	empty := scenarioModel{HttpChain: types.ListValueMust(types.StringType, nil)}
+	if hopsFrom(ctx, empty, &diags) != nil {
+		t.Error("empty chain must yield no hops")
+	}
+
+	diags = nil
+	broken := scenarioModel{HttpChain: types.ListValueMust(types.StringType, []attr.Value{types.StringValue("nope")})}
+	if hopsFrom(ctx, broken, &diags) != nil || !diags.HasError() {
+		t.Error("hops that are not objects must stop the conversion")
+	}
+}
