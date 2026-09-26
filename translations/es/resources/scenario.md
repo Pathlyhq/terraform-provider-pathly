@@ -1,7 +1,7 @@
 ---
 page_title: "pathly_scenario"
 description: |-
-  Un control HTTP o un recorrido de navegador.
+  Un Ping (control HTTP), un Flow (recorrido de navegador) o una Chain (hops HTTP).
 ---
 
 > **La versión inglesa es la de referencia.** Esta página traduce
@@ -12,7 +12,7 @@ description: |-
 
 # pathly_scenario
 
-Un control HTTP o un recorrido de navegador.
+Un Ping (control HTTP), un Flow (recorrido de navegador) o una Chain (hops HTTP).
 
 Un recorrido de navegador es de solo escritura: la API nunca devuelve los
 pasos, solo `scenario_fingerprint`. Un paso `fill` o `http_auth` puede llevar
@@ -30,6 +30,33 @@ resource "pathly_scenario" "home" {
   severity     = "major"
   folder       = "Shop"
   tags         = ["prod"]
+}
+```
+
+## Chain — login y luego GET /me
+
+```terraform
+resource "pathly_scenario" "api_me" {
+  name         = "Login then /me"
+  interval_sec = 300
+
+  http_chain = [
+    {
+      name          = "Login"
+      method        = "POST"
+      url           = "https://api.example.com/login"
+      body          = jsonencode({ email = var.api_user, password = var.api_password })
+      assert_status = 200
+      extract_json_path = "token"
+      extract_json_as   = "token"
+    },
+    {
+      name          = "Me"
+      method        = "GET"
+      url           = "https://api.example.com/me"
+      assert_status = 200
+    },
+  ]
 }
 ```
 
@@ -102,9 +129,10 @@ hacer clic o rellenar nada.
 ## Esquema
 
 El mismo esquema que la [versión inglesa](../../../docs/resources/scenario.md):
-`type` vale `http` o `browser`, `steps` lleva el recorrido (1 a 50 acciones),
-`scenario_fingerprint` detecta una edición fuera de Terraform. `value`,
-`username` y `password` son sensibles.
+`type` vale `http` o `browser`, `http_chain` lleva una Chain (1 a 10 hops),
+`steps` lleva el Flow (1 a 50 acciones), `scenario_fingerprint` detecta una
+edición fuera de Terraform. `value`, `username`, `password`, `body` y
+`headers` son sensibles. La API nunca devuelve `body` ni `headers`.
 
 ## Atributos dejados vacíos
 

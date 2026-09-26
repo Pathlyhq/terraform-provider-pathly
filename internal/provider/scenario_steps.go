@@ -126,6 +126,31 @@ func stepAttributes() map[string]schema.Attribute {
 
 func journeyAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
+		"http_chain": schema.ListNestedAttribute{
+			Optional:      true,
+			Computed:      true,
+			Description:   "Chain hops (login → API). Sent as `httpChain` on POST /v1/scenarios. Bodies and headers can carry secrets — keep them in a secret store.",
+			Validators:    []validator.List{listvalidator.SizeBetween(1, 10)},
+			PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+			NestedObject: schema.NestedAttributeObject{Attributes: map[string]schema.Attribute{
+				"name":   schema.StringAttribute{Optional: true, Description: "Label shown in the timeline.", Validators: []validator.String{stringvalidator.LengthBetween(1, 80)}},
+				"method": schema.StringAttribute{Required: true, Description: "HTTP method.", Validators: []validator.String{stringvalidator.OneOf("GET", "POST", "PUT", "PATCH", "HEAD", "DELETE")}},
+				"url":    schema.StringAttribute{Required: true, Description: "Hop address."},
+				"headers": schema.MapAttribute{
+					Optional:    true,
+					Sensitive:   true,
+					ElementType: types.StringType,
+					Description: "Hop headers. Can carry secrets — keep them in a secret store. Never returned by the API.",
+				},
+				"body":              schema.StringAttribute{Optional: true, Sensitive: true, Description: "JSON body. Marked sensitive."},
+				"wait_ms":           schema.Int64Attribute{Optional: true, Description: "Pause after the response, in milliseconds.", Validators: []validator.Int64{int64validator.Between(0, 30_000)}},
+				"assert_status":     schema.Int64Attribute{Optional: true, Description: "Expected HTTP status.", Validators: []validator.Int64{int64validator.Between(100, 599)}},
+				"expect_text":       schema.StringAttribute{Optional: true, Description: "Substring expected in the response."},
+				"extract_json_path": schema.StringAttribute{Optional: true, Description: "JSON path to extract for the next hop."},
+				"extract_json_as":   schema.StringAttribute{Optional: true, Description: "Variable name for the extracted value."},
+				"extract_cookie":    schema.StringAttribute{Optional: true, Description: "Cookie name to keep for the next hop."},
+			}},
+		},
 		"steps": schema.ListNestedAttribute{
 			Optional:      true,
 			Computed:      true,
@@ -336,24 +361,75 @@ func stepToClient(step stepModel, index int, diags *diag.Diagnostics) (client.Sc
 	}, true
 }
 
+type hopModel struct {
+	Name            types.String `tfsdk:"name"`
+	Method          types.String `tfsdk:"method"`
+	URL             types.String `tfsdk:"url"`
+	Headers         types.Map    `tfsdk:"headers"`
+	Body            types.String `tfsdk:"body"`
+	WaitMs          types.Int64  `tfsdk:"wait_ms"`
+	AssertStatus    types.Int64  `tfsdk:"assert_status"`
+	ExpectText      types.String `tfsdk:"expect_text"`
+	ExtractJSONPath types.String `tfsdk:"extract_json_path"`
+	ExtractJSONAs   types.String `tfsdk:"extract_json_as"`
+	ExtractCookie   types.String `tfsdk:"extract_cookie"`
+}
+
+func hopsFrom(ctx context.Context, m scenarioModel, diags *diag.Diagnostics) []client.HttpChainHop {
+	if m.HttpChain.IsNull() || m.HttpChain.IsUnknown() {
+		return nil
+	}
+	var hops []hopModel
+	diags.Append(m.HttpChain.ElementsAs(ctx, &hops, false)...)
+	if diags.HasError() || len(hops) == 0 {
+		return nil
+	}
+	out := make([]client.HttpChainHop, 0, len(hops))
+	for _, hop := range hops {
+		item := client.HttpChainHop{
+			Name:          strPtr(hop.Name),
+			Method:        hop.Method.ValueString(),
+			URL:           hop.URL.ValueString(),
+			Body:          strPtr(hop.Body),
+			WaitMs:        int64Ptr(hop.WaitMs),
+			AssertStatus:  int64Ptr(hop.AssertStatus),
+			ExpectText:    strPtr(hop.ExpectText),
+			ExtractCookie: strPtr(hop.ExtractCookie),
+		}
+		if !hop.Headers.IsNull() && !hop.Headers.IsUnknown() {
+			var headers map[string]string
+			diags.Append(hop.Headers.ElementsAs(ctx, &headers, false)...)
+			if len(headers) > 0 {
+				item.Headers = headers
+			}
+		}
+		if path := hop.ExtractJSONPath.ValueString(); path != "" && hop.ExtractJSONAs.ValueString() != "" {
+			item.ExtractJSON = &client.ExtractJSON{Path: path, As: hop.ExtractJSONAs.ValueString()}
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
 func requireJourneyOrURL(m scenarioModel, diags *diag.Diagnostics) {
 	browser := m.Type.ValueString() == "browser"
 	hasSteps := !m.Steps.IsNull() && !m.Steps.IsUnknown()
 	hasURL := !m.URL.IsNull() && !m.URL.IsUnknown() && m.URL.ValueString() != ""
+	hasChain := !m.HttpChain.IsNull() && !m.HttpChain.IsUnknown()
 
 	if browser && !hasSteps {
 		diags.AddAttributeError(
 			path.Root("steps"),
 			"Journey required",
-			"A browser scenario is a sequence of actions: set `steps`, starting with `goto`.",
+			"A Flow is a sequence of actions: set `steps`, starting with `goto`.",
 		)
 		return
 	}
-	if !browser && !hasURL {
+	if !browser && !hasURL && !hasChain {
 		diags.AddAttributeError(
 			path.Root("url"),
-			"Address required",
-			"An HTTP scenario monitors an address: set `url`.",
+			"Address or Chain required",
+			"A Ping needs `url`. A Chain needs `http_chain`.",
 		)
 	}
 }

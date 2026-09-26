@@ -1,7 +1,7 @@
 ---
 page_title: "pathly_scenario"
 description: |-
-  Un contrôle HTTP ou un parcours navigateur.
+  Un Ping (contrôle HTTP), un Flow (parcours navigateur) ou une Chain (hops HTTP).
 ---
 
 > **La version anglaise fait référence.** Cette page traduit
@@ -12,7 +12,7 @@ description: |-
 
 # pathly_scenario
 
-Un contrôle HTTP ou un parcours navigateur.
+Un Ping (contrôle HTTP), un Flow (parcours navigateur) ou une Chain (hops HTTP).
 
 Un parcours navigateur est en écriture seule : l'API ne renvoie jamais les
 étapes, seulement `scenario_fingerprint`. Une étape `fill` ou `http_auth` peut
@@ -30,6 +30,33 @@ resource "pathly_scenario" "home" {
   severity     = "major"
   folder       = "Shop"
   tags         = ["prod"]
+}
+```
+
+## Chain — login puis GET /me
+
+```terraform
+resource "pathly_scenario" "api_me" {
+  name         = "Login then /me"
+  interval_sec = 300
+
+  http_chain = [
+    {
+      name          = "Login"
+      method        = "POST"
+      url           = "https://api.example.com/login"
+      body          = jsonencode({ email = var.api_user, password = var.api_password })
+      assert_status = 200
+      extract_json_path = "token"
+      extract_json_as   = "token"
+    },
+    {
+      name          = "Me"
+      method        = "GET"
+      url           = "https://api.example.com/me"
+      assert_status = 200
+    },
+  ]
 }
 ```
 
@@ -102,9 +129,10 @@ cliquer ou remplir quoi que ce soit.
 ## Schéma
 
 Même schéma que la [version anglaise](../../../docs/resources/scenario.md) :
-`type` vaut `http` ou `browser`, `steps` porte le parcours (1 à 50 actions),
-`scenario_fingerprint` détecte une édition hors Terraform. Les champs
-`value`, `username` et `password` sont sensibles.
+`type` vaut `http` ou `browser`, `http_chain` porte une Chain (1 à 10 hops),
+`steps` porte le Flow (1 à 50 actions), `scenario_fingerprint` détecte une
+édition hors Terraform. Les champs `value`, `username`, `password`, `body`
+et `headers` sont sensibles. L’API ne renvoie jamais `body` ni `headers`.
 
 Opérations acceptées : `goto`, `click`, `hover`, `fill`, `select`, `upload`,
 `scroll`, `switch_tab`, `wait`, `wait_for`, `assert_text`, `assert_visible`,

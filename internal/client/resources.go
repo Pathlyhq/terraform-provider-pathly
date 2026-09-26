@@ -44,22 +44,23 @@ type Scenario struct {
 // API keeps the existing value. Sending a zero would erase a setting made from
 // the console.
 type ScenarioInput struct {
-	Name           *string      `json:"name,omitempty"`
-	Type           *string      `json:"type,omitempty"`
-	URL            *string      `json:"url,omitempty"`
-	IntervalSec    *int64       `json:"intervalSec,omitempty"`
-	Method         *string      `json:"method,omitempty"`
-	ExpectedStatus *int64       `json:"expectedStatus,omitempty"`
-	MaxLatencyMs   *int64       `json:"maxLatencyMs,omitempty"`
-	ExpectText     *string      `json:"expectText,omitempty"`
-	Regions        []string     `json:"regions,omitempty"`
-	Tags           []string     `json:"tags,omitempty"`
-	Folder         *string      `json:"folder,omitempty"`
-	Severity       *string      `json:"severity,omitempty"`
-	Runbook        *string      `json:"runbook,omitempty"`
-	Cron           *string      `json:"cron,omitempty"`
-	Enabled        *bool        `json:"enabled,omitempty"`
-	Scenario       *ScenarioAst `json:"scenario,omitempty"`
+	Name           *string        `json:"name,omitempty"`
+	Type           *string        `json:"type,omitempty"`
+	URL            *string        `json:"url,omitempty"`
+	IntervalSec    *int64         `json:"intervalSec,omitempty"`
+	Method         *string        `json:"method,omitempty"`
+	ExpectedStatus *int64         `json:"expectedStatus,omitempty"`
+	MaxLatencyMs   *int64         `json:"maxLatencyMs,omitempty"`
+	ExpectText     *string        `json:"expectText,omitempty"`
+	Regions        []string       `json:"regions,omitempty"`
+	Tags           []string       `json:"tags,omitempty"`
+	Folder         *string        `json:"folder,omitempty"`
+	Severity       *string        `json:"severity,omitempty"`
+	Runbook        *string        `json:"runbook,omitempty"`
+	Cron           *string        `json:"cron,omitempty"`
+	Enabled        *bool          `json:"enabled,omitempty"`
+	Scenario       *ScenarioAst   `json:"scenario,omitempty"`
+	HttpChain      []HttpChainHop `json:"httpChain,omitempty"`
 }
 
 func (c *Client) CreateScenario(ctx context.Context, in ScenarioInput, idempotencyKey string) (*Scenario, error) {

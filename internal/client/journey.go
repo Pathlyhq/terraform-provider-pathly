@@ -18,6 +18,25 @@ type ScenarioAst struct {
 	BasicAuth    *BasicAuth        `json:"basicAuth,omitempty"`
 }
 
+// HttpChainHop is one step of a Chain (login → protected API).
+type HttpChainHop struct {
+	Name          *string           `json:"name,omitempty"`
+	Method        string            `json:"method"`
+	URL           string            `json:"url"`
+	Headers       map[string]string `json:"headers,omitempty"`
+	Body          *string           `json:"body,omitempty"`
+	WaitMs        *int64            `json:"waitMs,omitempty"`
+	AssertStatus  *int64            `json:"assertStatus,omitempty"`
+	ExpectText    *string           `json:"expectText,omitempty"`
+	ExtractJSON   *ExtractJSON      `json:"extractJson,omitempty"`
+	ExtractCookie *string           `json:"extractCookie,omitempty"`
+}
+
+type ExtractJSON struct {
+	Path string `json:"path"`
+	As   string `json:"as"`
+}
+
 // BasicAuth is HTTP authentication attached to the first request of a journey.
 type BasicAuth struct {
 	Username string `json:"username"`

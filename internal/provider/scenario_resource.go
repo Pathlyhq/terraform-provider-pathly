@@ -58,6 +58,7 @@ type scenarioModel struct {
 	ScenarioTimezone    types.String `tfsdk:"scenario_timezone"`
 	BasicAuth           types.Object `tfsdk:"basic_auth"`
 	ScenarioFingerprint types.String `tfsdk:"scenario_fingerprint"`
+	HttpChain           types.List   `tfsdk:"http_chain"`
 }
 
 func (r *scenarioResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -82,8 +83,8 @@ func (r *scenarioResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 	keepInt64 := []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}
 	keepList := []planmodifier.List{listplanmodifier.UseStateForUnknown()}
 	resp.Schema = schema.Schema{
-		Description: "An HTTP check or a browser journey.",
-		MarkdownDescription: "An HTTP check or a browser journey.\n\n" +
+		Description: "A Ping, a Flow, or a Chain.",
+		MarkdownDescription: "A Ping (HTTP check), a Flow (browser journey), or a Chain (HTTP hops).\n\n" +
 			"A browser journey is write-only: the API never returns the steps, only `scenario_fingerprint`. " +
 			"A `fill` or `http_auth` step can carry a password — keep those values in a secret store, " +
 			"not in the repository. The state still holds them, marked sensitive.",
@@ -247,6 +248,7 @@ func (r *scenarioResource) inputFrom(ctx context.Context, m scenarioModel, diags
 		Cron:           strPtr(m.Cron),
 		Enabled:        boolPtr(m.Enabled),
 		Scenario:       astFrom(ctx, m, diags),
+		HttpChain:      hopsFrom(ctx, m, diags),
 	}
 }
 
@@ -283,6 +285,7 @@ func scenarioToModel(ctx context.Context, s *client.Scenario, keep scenarioModel
 		ScenarioTimezone:    knownString(keep.ScenarioTimezone),
 		BasicAuth:           knownObject(ctx, keep.BasicAuth),
 		ScenarioFingerprint: stringFrom(s.ScenarioFingerprint),
+		HttpChain:           knownList(ctx, keep.HttpChain),
 	}
 }
 

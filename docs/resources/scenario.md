@@ -6,7 +6,7 @@ description: |-
 
 # pathly_scenario
 
-An HTTP check or a browser journey.
+A Ping (HTTP check), a Flow (browser journey), or a Chain (HTTP hops).
 
 A browser journey is write-only: the API never returns the steps, only
 `scenario_fingerprint`. A `fill` or `http_auth` step can carry a password —
@@ -24,6 +24,33 @@ resource "pathly_scenario" "home" {
   severity     = "major"
   folder       = "Shop"
   tags         = ["prod"]
+}
+```
+
+## Chain — login then GET /me
+
+```terraform
+resource "pathly_scenario" "api_me" {
+  name         = "Login then /me"
+  interval_sec = 300
+
+  http_chain = [
+    {
+      name          = "Login"
+      method        = "POST"
+      url           = "https://api.example.com/login"
+      body          = jsonencode({ email = var.api_user, password = var.api_password })
+      assert_status = 200
+      extract_json_path = "token"
+      extract_json_as   = "token"
+    },
+    {
+      name          = "Me"
+      method        = "GET"
+      url           = "https://api.example.com/me"
+      assert_status = 200
+    },
+  ]
 }
 ```
 
@@ -126,6 +153,9 @@ click or fill anything.
   characters at most.
 - `cron` (String) — Cron schedule, in addition to or instead of
   `interval_sec`.
+- `http_chain` (List of Object) — Chain hops, 1 to 10. A Ping needs `url`.
+  A Chain needs `http_chain` (the first hop supplies `url` if omitted).
+  `body` and `headers` are sensitive and never returned by the API.
 - `steps` (List of Object) — Browser journey, 1 to 50 actions, first one
   `goto`. Never returned by the API.
 - `headers` (Map of String) — Extra headers of the first request, 10 at most.
@@ -139,6 +169,22 @@ click or fill anything.
   the organization timezone.
 - `basic_auth` (Object) — HTTP authentication of the first request.
   `username` and `password` are sensitive.
+
+### Nested schema for `http_chain`
+
+| Field | Required | What it does |
+|---|---|---|
+| `method` | yes | `GET`, `POST`, `PUT`, `PATCH`, `HEAD` or `DELETE`. |
+| `url` | yes | Hop address. |
+| `name` | no | Label shown in the timeline. |
+| `headers` | no | Hop headers. Sensitive. Never returned. |
+| `body` | no | JSON body. Sensitive. Never returned. |
+| `wait_ms` | no | Pause after the response, 0 to 30,000. |
+| `assert_status` | no | Expected HTTP status. |
+| `expect_text` | no | Substring expected in the response. |
+| `extract_json_path` | no | JSON path to extract for the next hop. |
+| `extract_json_as` | no | Variable name for the extracted value. |
+| `extract_cookie` | no | Cookie name to keep for the next hop. |
 
 ### Nested schema for `steps`
 
