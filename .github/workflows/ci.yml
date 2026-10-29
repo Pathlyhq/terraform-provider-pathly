@@ -1,0 +1,92 @@
+# Same checks as .gitlab-ci.yml (test, examples, docs-translations).
+# Signed releases (goreleaser + GPG) stay on the public Pathlyhq repository
+# that the Terraform Registry reads: no publish job here.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l $(git ls-files '*.go'))
+          if [ -n "${unformatted}" ]; then
+            echo "${unformatted}"
+            echo "Run gofmt -w ."
+            exit 1
+          fi
+      - run: go vet ./...
+      - run: CGO_ENABLED=0 go build -o terraform-provider-pathly .
+      - run: go test ./internal/... -race -coverprofile=covprofile
+      - name: Coverage must stay at 100 %
+        run: |
+          total=$(go tool cover -func=covprofile | awk '/^total:/ {print $3}')
+          echo "Coverage: ${total}"
+          [ "${total}" = "100.0%" ] || (echo "Coverage must stay at 100%." && exit 1)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider
+          path: terraform-provider-pathly
+          retention-days: 1
+
+  examples:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: provider
+          path: /tmp/plugins
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.1
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive examples
+      - name: terraform validate (dev_overrides)
+        run: |
+          chmod +x /tmp/plugins/terraform-provider-pathly
+          cat > /tmp/dev.tfrc <<'TFRC'
+          provider_installation {
+            dev_overrides { "pathlyhq/pathly" = "/tmp/plugins" }
+            direct {}
+          }
+          TFRC
+          export TF_CLI_CONFIG_FILE=/tmp/dev.tfrc
+          for dir in minimal complete import; do
+            (cd "examples/${dir}" && terraform validate)
+          done
+
+  docs-translations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: translations/{fr,es} mirror docs/
+        run: |
+          (cd docs && find . -name '*.md' | sort) > /tmp/docs.list
+          for lang in fr es; do
+            (cd "translations/${lang}" && find . -name '*.md' | sort) > "/tmp/${lang}.list"
+            if ! diff "/tmp/docs.list" "/tmp/${lang}.list"; then
+              echo "translations/${lang} does not mirror docs/ — see the diff above."
+              exit 1
+            fi
+            echo "translations/${lang}: complete"
+          done
+          test -f README.fr.md || (echo "README.fr.md missing" && exit 1)
+          test -f README.es.md || (echo "README.es.md missing" && exit 1)
