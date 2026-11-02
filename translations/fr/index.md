@@ -63,6 +63,8 @@ nécessaires :
 | `pathly_runs`, `pathly_run` | `runs:read` |
 | `pathly_sla`, `pathly_sla_targets` | `sla:read` |
 | `pathly_usage` | `org:read` |
+| `pathly_space`, `pathly_spaces`, `pathly_account` | `org:read`, `org:write` (`org:read` seul pour les deux data sources) |
+| `pathly_status_page` (ressource) | `status:read`, `status:write` |
 
 Pour un pipeline qui ne fait que `terraform plan`, les portées `:read`
 suffisent. Aucune portée d'organisation n'est exigée : la vérification faite au

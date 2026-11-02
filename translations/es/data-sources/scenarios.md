@@ -40,15 +40,18 @@ output "scenarios_outside_terraform" {
 - `filter_tag` (String) — Conserva únicamente los escenarios que llevan esta
   etiqueta.
 - `filter_folder` (String) — Conserva únicamente los escenarios de esta carpeta.
+- `filter_space_id` (String) — Conserva únicamente los escenarios de este
+  Espacio.
 
-Ambos filtros se combinan y se aplican después de la lectura: no reducen el
-número de llamadas a la API.
+Los filtros se combinan. `filter_tag` y `filter_folder` se aplican después de la
+lectura: no reducen el número de llamadas a la API. `filter_space_id` lo aplica
+la API, que responde 404 para un Espacio que no conoce.
 
 ### Calculados
 
 - `scenarios` (List of Object) — Escenarios seleccionados, cada uno con `id`,
-  `name`, `type`, `url`, `enabled`, `interval_sec`, `folder`, `severity`, `tags`
-  y `last_status`.
+  `name`, `type`, `url`, `enabled`, `interval_sec`, `folder`, `severity`, `tags`,
+  `last_status` y `space_id`.
 
 ## Alcance necesario
 

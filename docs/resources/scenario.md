@@ -153,6 +153,11 @@ click or fill anything.
   characters at most.
 - `cron` (String) — Cron schedule, in addition to or instead of
   `interval_sec`.
+- `space_id` (String) — Space the scenario is filed in (`pathly_space.id`). A
+  key limited to a Space imposes its own and refuses any other. Null while
+  Spaces are not open for the organization. Like the other optional
+  attributes, removing it from the configuration leaves the scenario in its
+  Space.
 - `http_chain` (List of Object) — Chain hops, 1 to 10. A Ping needs `url`.
   A Chain needs `http_chain` (the first hop supplies `url` if omitted).
   `body` and `headers` are sensitive and never returned by the API.

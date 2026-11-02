@@ -57,6 +57,10 @@ resource "pathly_settings" "this" {
 Activar `status_public` publica los nombres de los escenarios y su
 disponibilidad. Compruebe que ninguno nombra un host interno.
 
+`status_slug` y `status_public` controlan la misma página de la organización
+que `pathly_status_page` sin `space_id`. Gestione esa página en un solo lugar:
+con los dos, cada apply deshace lo que escribió el otro.
+
 El esquema detallado está en la [versión inglesa](../../../docs/resources/settings.md).
 Ámbitos: `org:read` para refrescar, `org:write` para cambiar.
 
