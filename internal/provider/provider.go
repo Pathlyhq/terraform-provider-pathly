@@ -1,8 +1,8 @@
 // Package provider exposes the Pathly resources to Terraform.
 //
 // Core choice: the provider only writes what makes sense as declarative
-// infrastructure — scenarios, maintenance windows, webhooks, SLA targets and the
-// organization settings. API keys are not there, the API refuses them to a key,
+// infrastructure — scenarios, Spaces, status pages, maintenance windows,
+// webhooks, SLA targets and the organization settings. API keys are not there, the API refuses them to a key,
 // and members are readable but not writable: a Terraform file that invites an
 // owner turns a repository write into an access grant.
 //
@@ -56,7 +56,7 @@ func (p *pathlyProvider) Metadata(_ context.Context, _ provider.MetadataRequest,
 
 func (p *pathlyProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages Pathly synthetic monitoring: scenarios, maintenance windows, webhooks and SLA targets.",
+		Description: "Manages Pathly synthetic monitoring: scenarios, Spaces, status pages, maintenance windows, webhooks and SLA targets.",
 		Attributes: map[string]schema.Attribute{
 			"api_url": schema.StringAttribute{
 				Optional:    true,
@@ -150,6 +150,8 @@ func (p *pathlyProvider) Resources(_ context.Context) []func() resource.Resource
 		NewWebhookResource,
 		NewSlaTargetResource,
 		NewSettingsResource,
+		NewSpaceResource,
+		NewStatusPageResource,
 	}
 }
 
@@ -167,6 +169,8 @@ func (p *pathlyProvider) DataSources(_ context.Context) []func() datasource.Data
 		NewWebhooksDataSource,
 		NewMaintenanceWindowsDataSource,
 		NewStatusPageDataSource,
+		NewSpacesDataSource,
+		NewAccountDataSource,
 	}
 }
 

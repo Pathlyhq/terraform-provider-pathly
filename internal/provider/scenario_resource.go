@@ -49,6 +49,7 @@ type scenarioModel struct {
 	LastStatus     types.String `tfsdk:"last_status"`
 	MutedUntil     types.String `tfsdk:"muted_until"`
 	CreatedAt      types.String `tfsdk:"created_at"`
+	SpaceID        types.String `tfsdk:"space_id"`
 
 	Steps               types.List   `tfsdk:"steps"`
 	Headers             types.Map    `tfsdk:"headers"`
@@ -217,6 +218,17 @@ func (r *scenarioResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					Description:   "Creation date.",
 					PlanModifiers: keepString,
 				},
+				// Optional and computed: a key limited to a Space files the
+				// scenario in its Space without being asked, and the plan must
+				// not then announce a move back out of it.
+				"space_id": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
+					Description: "Space the scenario is filed in (`pathly_space.id`). " +
+						"A key limited to a Space imposes its own and refuses any other. " +
+						"Null while Spaces are not open for the organization.",
+					PlanModifiers: keepString,
+				},
 			}
 			for name, attr := range journeyAttributes() {
 				attrs[name] = attr
@@ -249,6 +261,7 @@ func (r *scenarioResource) inputFrom(ctx context.Context, m scenarioModel, diags
 		Enabled:        boolPtr(m.Enabled),
 		Scenario:       astFrom(ctx, m, diags),
 		HttpChain:      hopsFrom(ctx, m, diags),
+		SpaceID:        strPtr(m.SpaceID),
 	}
 }
 
@@ -273,6 +286,7 @@ func scenarioToModel(ctx context.Context, s *client.Scenario, keep scenarioModel
 		LastStatus:     stringFrom(s.LastStatus),
 		MutedUntil:     stringFrom(s.MutedUntil),
 		CreatedAt:      stringFrom(s.CreatedAt),
+		SpaceID:        stringFrom(s.SpaceID),
 		// The API never returns the tree: keeping the plan's copy is the only
 		// way the next plan does not announce the deletion of every step.
 		// Unknown (omitted computed) becomes a typed null: Terraform refuses a
