@@ -3,7 +3,7 @@
 **English** · [Français](README.fr.md) · [Español](README.es.md)
 
 
-[![CI](https://gitlab.com/pathlyhq/pathly-terraform-provider/badges/main/pipeline.svg)](https://gitlab.com/pathlyhq/pathly-terraform-provider/-/pipelines)
+[![CI](https://github.com/Pathlyhq/terraform-provider-pathly/actions/workflows/ci.yml/badge.svg)](https://github.com/Pathlyhq/terraform-provider-pathly/actions/workflows/ci.yml)
 [![Powered by Pathly](https://img.shields.io/badge/Powered%20by-Pathly-0B5FFF?style=flat-square)](https://pathlyhq.com)
 [![Website](https://img.shields.io/badge/Website-pathlyhq.com-111827?style=flat-square)](https://pathlyhq.com)
 [![API docs](https://img.shields.io/badge/API-developers-2563eb?style=flat-square)](https://pathlyhq.com/en/developers)
@@ -120,9 +120,6 @@ so it is the one that prevails when a translation lags behind.
 Contributing (tests, `TF_ACC`, no secrets): [`CONTRIBUTING.md`](CONTRIBUTING.md).
 Discovery / registry publish checklist: [`docs/SEO.md`](docs/SEO.md).
 
-> **CI badge:** the pipeline badge above points at the GitLab project path
-> `pathlyhq/pathly-terraform-provider`. Adjust `GROUP/PROJECT` once the public
-> mirror URL is final (see [`docs/SEO.md`](docs/SEO.md)).
 
 ## What the provider does not do, and why
 
@@ -197,25 +194,21 @@ travel readable in the `Authorization` header.
 
 ## Publishing
 
-Development lives on GitLab, and the pipeline builds and signs the archives from
-there. Where those archives go is a separate decision, and there are two
-channels. They are independent: either works on its own, and the same signed
-archives feed both.
+This repository is the source, and its GitHub Actions workflows build, sign and
+publish the archives. There are two channels. They are independent, and the same
+signed archives feed both.
 
-| Channel | Source address | Who can install it | GitHub needed |
-|---|---|---|---|
-| Public Terraform Registry | `pathlyhq/pathly` | anyone | yes, a public mirror |
-| HCP Terraform private registry | `app.terraform.io/Pathly/pathly` | members of the `Pathly` organization | no |
+| Channel | Source address | Who can install it |
+|---|---|---|
+| Public Terraform Registry | `pathlyhq/pathly` | anyone |
+| HCP Terraform private registry | `app.terraform.io/Pathly/pathly` | members of the `Pathly` organization |
 
-The public registry is the only one that gives discoverability, a rendered
-documentation site and installation without credentials. It also comes with a
-hard requirement: it authenticates through GitHub, its namespace **is** a GitHub
-organization name, and it ingests versions through a webhook on the releases of a
-public GitHub repository. There is no import from GitLab, no manual upload and no
-API to push a version. GitHub therefore serves as a read-only shop window, fed by
-a mirror, while the signing key never leaves GitLab.
+The public registry authenticates through GitHub, its namespace **is** the GitHub
+organization name, and it ingests versions through a webhook on the releases of
+this public repository. It never reads an unsigned release: a release without
+`SHA256SUMS.sig` is ignored, and `terraform init` then refuses the provider.
 
-### Shared setup
+### Setup, once
 
 **1. Signing key.** Both registries reject elliptic curves, so the key has to be
 RSA:
@@ -224,57 +217,25 @@ RSA:
 gpg --full-generate-key            # RSA type, 4096 bits, with a passphrase
 gpg --list-secret-keys --keyid-format=long     # note the fingerprint
 gpg --armor --export <fingerprint>             # public part, to paste into the registry
-gpg --armor --export-secret-keys <fingerprint> | base64 -w0   # private part, for CI
+gpg --armor --export-secret-keys <fingerprint> # private part, for the release environment
 ```
 
-**2. GitLab CI/CD variables**, all **masked and protected**. "Protected" is not
-a convenience: without that attribute, the signing key is readable from any
-branch, and therefore exfiltrable by a simple push.
+**2. `release` environment** (*Settings → Environments*), limited to the `main`
+branch, so that no other branch can read the key:
 
-| Variable | Contents |
+| Secret | Contents |
 |---|---|
-| `GPG_PRIVATE_KEY` | Private part of the key, base64-encoded |
+| `GPG_PRIVATE_KEY` | Private part of the key, ASCII armored or base64 |
 | `GPG_PASSPHRASE` | Passphrase of that key |
-| `GPG_FINGERPRINT` | Fingerprint of the key |
+| `TFE_TOKEN` | Optional, HCP private registry: team token with *Manage private registry* |
+| `TFE_GPG_KEY_ID` | Optional, HCP private registry: id returned when the public key was registered |
 
-### Channel A — public Terraform Registry
+**3. Public registry.** On [registry.terraform.io](https://registry.terraform.io),
+signed in with GitHub: the public key under *User settings → Signing keys*, then
+*Publish → Provider* on this repository (it installs the webhook).
 
-The GitHub repository name is not yours to choose: the source `pathlyhq/pathly`
-requires a `pathlyhq` organization and a `terraform-provider-pathly` repository.
-
-**1. GitHub repository.** Create the `pathlyhq` organization and the **public**
-`terraform-provider-pathly` repository, empty, with no generated README and no
-generated license. The mirror would refuse to push onto a diverged history.
-
-**2. GitLab → GitHub mirror.** Under **Settings → Repository → Mirroring
-repositories**, direction *Push*, URL
-`https://github.com/pathlyhq/terraform-provider-pathly.git`, with a GitHub token
-as the password. Leave "Mirror only protected branches" **unchecked**: without
-the tags, the registry has nothing to read.
-
-**3. CI/CD variable** `GITHUB_TOKEN`, masked and protected: a **fine-grained**
-token with the `contents: write` permission on the `terraform-provider-pathly`
-repository only, and a short expiry. A classic token would give access to the
-whole organization.
-
-**4. Declaration to the registry.** Sign in to
-[registry.terraform.io](https://registry.terraform.io) with the GitHub account,
-declare the public key under *User settings → Signing keys*, then *Publish →
-Provider* and pick the repository. The webhook is installed at that moment.
-
-### Channel B — HCP Terraform private registry
-
-No GitHub in this path. A provider is published straight to the organization's
-registry over its API — which is also the only way, since the HCP console and the
-VCS connection only handle modules, never providers.
-
-**1. CI/CD variable** `TFE_TOKEN`, masked and protected: an HCP Terraform token
-belonging to a team that holds the *Manage private registry* permission. Prefer a
-team token over a personal one, so the pipeline does not stop working the day its
-author leaves.
-
-**2. Register the public key** once, and keep the id it returns. For a private
-registry the namespace is the organization name:
+**4. HCP private registry** (optional). Register the public key once, and store
+the id it returns as `TFE_GPG_KEY_ID`:
 
 ```sh
 curl -sS -X POST "https://app.terraform.io/api/registry/private/v2/gpg-keys" \
@@ -285,39 +246,25 @@ curl -sS -X POST "https://app.terraform.io/api/registry/private/v2/gpg-keys" \
   | jq -r '.data.attributes["key-id"]'
 ```
 
-**3. CI/CD variable** `TFE_GPG_KEY_ID` with that id. It is what ties a published
-version to the key that signed it.
-
-**4. Consumers** need a token for the host, since a private registry is
-authenticated. `terraform login app.terraform.io` writes one, or set
-`TF_TOKEN_app_terraform_io` in CI:
-
-```hcl
-terraform {
-  required_providers {
-    pathly = {
-      source  = "app.terraform.io/Pathly/pathly"
-      version = "~> 0.1"
-    }
-  }
-}
-```
+Consumers of the private registry need a token for the host:
+`terraform login app.terraform.io`, or `TF_TOKEN_app_terraform_io` in CI.
 
 ### For each version
 
-```sh
-git tag v0.1.0 && git push origin v0.1.0
-```
+release-please keeps a `chore(main): release x.y.z` pull request up to date from
+the Conventional Commits merged on `main`. While the API is v1, versions move one
+patch at a time (`feat` included). Merging that pull request is the publication
+decision:
 
-The pipeline tests, validates the examples, then stops. Three manual jobs follow,
-in this order: `archives` builds the eleven targets and signs the checksums,
-after which `publish-github` and `publish-hcp` upload those same archives to
-whichever channels you use. Neither publishing job needs the other.
+1. release-please creates a **draft** GitHub release;
+2. the `goreleaser` job runs the tests, builds the eleven targets, signs the
+   checksums, attaches the archives and the manifest, then publishes the release,
+   which creates the `vX.Y.Z` tag and triggers the registry webhook;
+3. `publish-hcp` pushes the same archives to the private registry when
+   `TFE_TOKEN` is set.
 
-`publish-github` creates the GitHub release as a **draft**, so the registry
-ingests nothing until you publish it by hand. Two explicit gestures, and that is
-deliberate: a published version is immediately consumed by customers'
-`terraform init`, and can never be withdrawn from a registry.
+A published version is consumed at once by `terraform init`, and can never be
+withdrawn from a registry.
 
 ### Checking that a version really landed
 
@@ -334,12 +281,7 @@ curl -s -H "Authorization: Bearer $TFE_TOKEN" \
 On the public registry, a version missing while the GitHub release is published
 almost always signals a rejected signature: an archive without `SHA256SUMS.sig`,
 or a fingerprint declared to the registry that differs from the one that actually
-signed.
-
-On HCP, a version whose checksum files or platform binaries were not all uploaded
-stays in place but unusable, and `terraform init` reports it as unavailable rather
-than missing. Re-run `publish-hcp` on the tag: the calls are safe to repeat.
-
+signed. On HCP, re-run `publish-hcp`: the calls are safe to repeat.
 
 ## Pathly + Terraform — adoption checklist
 

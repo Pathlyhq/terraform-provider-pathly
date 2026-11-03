@@ -70,9 +70,9 @@ signs:
 
 release:
   # GoReleaser builds and signs, it never publishes. Uploading is the job of the
-  # pipeline, which knows two destinations — the GitHub mirror read by the public
-  # registry, and the HCP Terraform private registry — and neither is reachable
-  # from a `goreleaser release` run against this GitLab remote.
+  # release workflow (.github/workflows/release-please.yml), which attaches the
+  # archives to the draft release read by the public registry, then feeds the
+  # HCP Terraform private registry.
   #
   # Disabled rather than left to the `--skip=publish` flag alone: someone running
   # goreleaser by hand would otherwise cut a release from their workstation, with

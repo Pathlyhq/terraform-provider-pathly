@@ -54,13 +54,13 @@ Ne jamais pointer une org de production que vous ne pouvez pas muter.
 - **Never** commit API tokens, GPG private keys, webhook secrets, or `.env` files.
 - Prefer `PATHLY_API_TOKEN` / `PATHLY_API_URL` in the environment.
 - Do not put `api_token` in example `.tf` files (it lands in plaintext state).
-- CI signing keys stay in GitLab protected + masked variables only.
+- CI signing keys stay in the secrets of the `release` GitHub environment only.
 
 ## Docs and examples
 
 - English under `docs/` is canonical (Terraform Registry).
 - Keep FR/ES trees in `translations/` aligned when adding or removing pages.
-- Examples under `examples/` must `terraform validate` (see `.gitlab-ci.yml`).
+- Examples under `examples/` must `terraform validate` (see `.github/workflows/ci.yml`).
 
 ## Local provider override
 

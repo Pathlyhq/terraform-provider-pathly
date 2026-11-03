@@ -1,6 +1,5 @@
-# Same checks as .gitlab-ci.yml (test, examples, docs-translations).
-# Signed releases (goreleaser + GPG) stay on the public Pathlyhq repository
-# that the Terraform Registry reads: no publish job here.
+# Same checks as the release job runs before signing (test, examples,
+# docs-translations). Signed releases: release-please.yml.
 name: CI
 
 on:

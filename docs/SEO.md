@@ -54,28 +54,14 @@ Working example: [`examples/import`](../examples/import/). Per-resource pages
 under [`docs/resources/`](resources/). Root [README](../README.md) covers scopes
 and webhook secret / state warnings.
 
-## Badges (GitLab CI placeholders)
-
-Development CI runs on **GitLab**. After the public project path is final,
-replace `GROUP/PROJECT` below (same pattern for OpenTofu / CDKTF mirrors).
+## Badges
 
 ```markdown
-[![CI](https://gitlab.com/GROUP/PROJECT/badges/main/pipeline.svg)](https://gitlab.com/GROUP/PROJECT/-/pipelines)
+[![CI](https://github.com/Pathlyhq/terraform-provider-pathly/actions/workflows/ci.yml/badge.svg)](https://github.com/Pathlyhq/terraform-provider-pathly/actions/workflows/ci.yml)
 [![Terraform Registry](https://img.shields.io/badge/registry-pathlyhq%2Fpathly-623CE4?logo=terraform)](https://registry.terraform.io/providers/pathlyhq/pathly)
 [![Website](https://img.shields.io/badge/Website-pathlyhq.com-111827)](https://pathlyhq.com)
 [![API](https://img.shields.io/badge/API-developers-2563eb)](https://pathlyhq.com/en/developers)
 ```
-
-Suggested project names once mirrored:
-
-| Repo (local) | Placeholder GitLab path |
-|---|---|
-| `pathly-terraform-provider` | `pathlyhq/pathly-terraform-provider` |
-| `pathly-opentofu` | `pathlyhq/pathly-opentofu` |
-| `pathly-cdktf` | `pathlyhq/pathly-cdktf` |
-
-GitHub is only the **read-only shop window** for the public Terraform Registry
-(webhook on releases). Do not point the primary CI badge at GitHub Actions.
 
 ## Registry publish checklist
 
@@ -86,15 +72,13 @@ Use this before every public version. Detail lives in the root README
 
 - [ ] RSA 4096 GPG key (no elliptic curves); passphrase stored securely
 - [ ] Public key registered on [registry.terraform.io](https://registry.terraform.io) *and/or* HCP private registry
-- [ ] GitLab CI/CD variables **masked and protected**: `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE`, `GPG_FINGERPRINT`
+- [ ] Secrets of the `release` GitHub environment (main branch only): `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE`
 
 ### Channel A — public Terraform Registry (`pathlyhq/pathly`)
 
-- [ ] GitHub org `pathlyhq` + public repo `terraform-provider-pathly` (empty history before first mirror push)
-- [ ] GitLab → GitHub push mirror (tags included; “protected branches only” **unchecked**)
-- [ ] `GITHUB_TOKEN` fine-grained, `contents: write` on that repo only, masked + protected
+- [ ] Public repo `Pathlyhq/terraform-provider-pathly`
 - [ ] Provider declared on the Registry (webhook installed)
-- [ ] Tag `vX.Y.Z` → pipeline `archives` → `publish-github` (draft) → **human publish** of the GitHub release
+- [ ] Merge the release-please PR → draft release → job `goreleaser` attaches the signed archives and publishes the release
 - [ ] Verify: `curl -s https://registry.terraform.io/v1/providers/pathlyhq/pathly/versions | jq '.versions[].version'`
 
 ### Channel B — HCP Terraform private registry (optional)
