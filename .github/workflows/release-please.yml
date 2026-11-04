@@ -1,0 +1,150 @@
+# Keeps a "chore(main): release x.y.z" PR up to date (CHANGELOG.md + version).
+# Merging it creates a draft GitHub release; the goreleaser job then attaches
+# the signed archives and publishes it, which creates the vX.Y.Z tag. The
+# Terraform Registry reads published releases only, so it never sees one
+# without its signature (a release without SHA256SUMS.sig is ignored, and
+# `terraform init` then refuses the provider).
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Secrets of the "release" environment (Settings > Environments, limited to
+  # the main branch):
+  #   GPG_PRIVATE_KEY  provider signing key, ASCII armored or base64
+  #   GPG_PASSPHRASE   passphrase for that key
+  # The public key is the one declared in the Terraform Registry account.
+  # Optional, HCP Terraform private registry: TFE_TOKEN and TFE_GPG_KEY_ID.
+  goreleaser:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+          # GoReleaser reads the tags to derive the version.
+          fetch-depth: 0
+      # The tag only exists once the draft is published: GoReleaser gets a
+      # local one, never pushed.
+      - run: git tag "${TAG}"
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test ./internal/...
+      - id: gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      # Pinned version: `latest` would let a binary nobody reviewed sign the
+      # archives.
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: v2.18.2
+          args: release --clean --skip=publish
+        env:
+          GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      # GoReleaser lists the manifest in the checksums but leaves it at the
+      # repository root (release.disable). The registry expects it next to the
+      # archives, under this name.
+      - run: cp terraform-registry-manifest.json "dist/terraform-provider-pathly_${TAG#v}_manifest.json"
+      - name: Attach the signed archives, then publish the release
+        run: |
+          shopt -s nullglob
+          files=(dist/*.zip dist/*_manifest.json dist/*_SHA256SUMS dist/*_SHA256SUMS.sig)
+          [ "${#files[@]}" -gt 3 ] || { echo "No signed archives in dist/"; exit 1; }
+          gh release upload "${TAG}" "${files[@]}" --clobber
+          gh release edit "${TAG}" --draft=false --latest
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 30
+
+  # HCP Terraform private registry, fed over its API (the console and the VCS
+  # connection only handle modules). Skipped while TFE_TOKEN is not set.
+  publish-hcp:
+    needs: [release-please, goreleaser]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
+      TFE_GPG_KEY_ID: ${{ secrets.TFE_GPG_KEY_ID }}
+      TFE_HOST: app.terraform.io
+      TFE_ORG: Pathly
+      PROVIDER_NAME: pathly
+    steps:
+      - name: TFE_TOKEN set?
+        id: hcp
+        run: echo "enabled=$([ -n "${TFE_TOKEN}" ] && [ -n "${TFE_GPG_KEY_ID}" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - if: steps.hcp.outputs.enabled == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - if: steps.hcp.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          auth="Authorization: Bearer ${TFE_TOKEN}"
+          json="Content-Type: application/vnd.api+json"
+          providers="https://${TFE_HOST}/api/v2/organizations/${TFE_ORG}/registry-providers"
+
+          # Created on the first release only: a second attempt answers 422.
+          body="{\"data\":{\"type\":\"registry-providers\",\"attributes\":{\"name\":\"${PROVIDER_NAME}\",\"namespace\":\"${TFE_ORG}\",\"registry-name\":\"private\"}}}"
+          curl -sS -o /dev/null -X POST "${providers}" -H "${auth}" -H "${json}" -d "${body}" || true
+
+          versions="${providers}/private/${TFE_ORG}/${PROVIDER_NAME}/versions"
+          body="{\"data\":{\"type\":\"registry-provider-versions\",\"attributes\":{\"version\":\"${version}\",\"key-id\":\"${TFE_GPG_KEY_ID}\",\"protocols\":[\"6.0\"]}}}"
+          links=$(curl -sS -f -X POST "${versions}" -H "${auth}" -H "${json}" -d "${body}")
+
+          sums="dist/terraform-provider-${PROVIDER_NAME}_${version}_SHA256SUMS"
+          curl -sS -f -T "${sums}" "$(echo "${links}" | jq -er '.data.links["shasums-upload"]')"
+          curl -sS -f -T "${sums}.sig" "$(echo "${links}" | jq -er '.data.links["shasums-sig-upload"]')"
+
+          # One platform per archive, read back from the file name.
+          for zip in dist/*.zip; do
+            name=$(basename "${zip}")
+            platform="${name%.zip}"
+            platform="${platform#"terraform-provider-${PROVIDER_NAME}_${version}_"}"
+            os="${platform%_*}"
+            arch="${platform##*_}"
+            shasum=$(grep " ${name}\$" "${sums}" | cut -d ' ' -f 1)
+            body="{\"data\":{\"type\":\"registry-provider-version-platforms\",\"attributes\":{\"os\":\"${os}\",\"arch\":\"${arch}\",\"shasum\":\"${shasum}\",\"filename\":\"${name}\"}}}"
+            upload=$(curl -sS -f -X POST "${versions}/${version}/platforms" -H "${auth}" -H "${json}" -d "${body}" \
+              | jq -er '.data.links["provider-binary-upload"]')
+            curl -sS -f -T "${zip}" "${upload}"
+            echo "published ${os}/${arch}"
+          done

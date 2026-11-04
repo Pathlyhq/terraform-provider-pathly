@@ -3,7 +3,7 @@
 [English](README.md) · [Français](README.fr.md) · **Español**
 
 
-[![CI](https://gitlab.com/pathlyhq/pathly-terraform-provider/badges/main/pipeline.svg)](https://gitlab.com/pathlyhq/pathly-terraform-provider/-/pipelines)
+[![CI](https://github.com/Pathlyhq/terraform-provider-pathly/actions/workflows/ci.yml/badge.svg)](https://github.com/Pathlyhq/terraform-provider-pathly/actions/workflows/ci.yml)
 [![Powered by Pathly](https://img.shields.io/badge/Powered%20by-Pathly-0B5FFF?style=flat-square)](https://pathlyhq.com)
 [![Website](https://img.shields.io/badge/Website-pathlyhq.com-111827?style=flat-square)](https://pathlyhq.com)
 [![API docs](https://img.shields.io/badge/API-developers-2563eb?style=flat-square)](https://pathlyhq.com/es/developers)
@@ -191,135 +191,78 @@ viajaría legible en la cabecera `Authorization`.
 
 ## Publicación
 
-El desarrollo vive en GitLab, y el pipeline compila y firma los archivos desde
-allí. A dónde van esos archivos es una decisión aparte, y hay dos canales. Son
-independientes: cada uno funciona por sí solo, y los mismos archivos firmados
-alimentan ambos.
+Este repositorio es la fuente, y sus workflows de GitHub Actions compilan, firman
+y publican los archivos. Hay dos canales. Son independientes, y los mismos
+archivos firmados alimentan ambos.
 
-| Canal | Dirección de la source | Quién puede instalarlo | GitHub necesario |
-|---|---|---|---|
-| Terraform Registry público | `pathlyhq/pathly` | cualquiera | sí, un espejo público |
-| Registro privado de HCP Terraform | `app.terraform.io/Pathly/pathly` | los miembros de la organización `Pathly` | no |
+| Canal | Dirección de la source | Quién puede instalarlo |
+|---|---|---|
+| Terraform Registry público | `pathlyhq/pathly` | cualquiera |
+| Registro privado de HCP Terraform | `app.terraform.io/Pathly/pathly` | los miembros de la organización `Pathly` |
 
-El registro público es el único que aporta capacidad de descubrimiento, un sitio
-de documentación renderizado y la instalación sin credenciales. Llega también con
-una exigencia inflexible: se autentica a través de GitHub, su namespace **es** un
-nombre de organización de GitHub, e ingiere las versiones mediante un webhook
-sobre las releases de un repositorio público de GitHub. No existe ninguna
-importación desde GitLab, ninguna carga manual ni ninguna API para enviar una
-versión. GitHub sirve por tanto de escaparate en solo lectura, alimentado por un
-espejo, mientras que la clave de firma nunca sale de GitLab.
+El registro público se autentica a través de GitHub, su namespace **es** el
+nombre de la organización de GitHub, e ingiere las versiones mediante un webhook
+sobre las releases de este repositorio público. Nunca lee una release sin firma:
+una release sin `SHA256SUMS.sig` se ignora, y `terraform init` rechaza entonces
+el provider.
 
-### Configuración compartida
+### Configuración, una sola vez
 
 **1. Clave de firma.** Ambos registros rechazan las curvas elípticas, así que la
 clave tiene que ser RSA:
 
 ```sh
-gpg --full-generate-key            # RSA type, 4096 bits, with a passphrase
-gpg --list-secret-keys --keyid-format=long     # note the fingerprint
-gpg --armor --export <fingerprint>             # public part, to paste into the registry
-gpg --armor --export-secret-keys <fingerprint> | base64 -w0   # private part, for CI
+gpg --full-generate-key            # tipo RSA, 4096 bits, con frase de contraseña
+gpg --list-secret-keys --keyid-format=long     # anotar la huella
+gpg --armor --export <huella>                  # parte pública, para pegar en el registro
+gpg --armor --export-secret-keys <huella>      # parte privada, para el entorno release
 ```
 
-**2. Variables CI/CD de GitLab**, todas **masked y protected** (enmascaradas y
-protegidas). «Protected» no es una comodidad: sin ese atributo, la clave de firma
-es legible desde cualquier rama y, por tanto, exfiltrable mediante un simple
-push.
+**2. Entorno `release`** (*Settings → Environments*), limitado a la rama `main`,
+para que ninguna otra rama pueda leer la clave:
 
-| Variable | Contenido |
+| Secreto | Contenido |
 |---|---|
-| `GPG_PRIVATE_KEY` | Parte privada de la clave, codificada en base64 |
+| `GPG_PRIVATE_KEY` | Parte privada de la clave, en ASCII armor o en base64 |
 | `GPG_PASSPHRASE` | Frase de contraseña de esa clave |
-| `GPG_FINGERPRINT` | Huella de la clave |
+| `TFE_TOKEN` | Opcional, registro privado de HCP: token de equipo con *Manage private registry* |
+| `TFE_GPG_KEY_ID` | Opcional, registro privado de HCP: id devuelto al registrar la clave pública |
 
-### Canal A — Terraform Registry público
+**3. Registro público.** En [registry.terraform.io](https://registry.terraform.io),
+con la sesión de GitHub: la clave pública en *User settings → Signing keys*, y
+después *Publish → Provider* sobre este repositorio (instala el webhook).
 
-El nombre del repositorio de GitHub no se elige libremente: la source
-`pathlyhq/pathly` exige una organización `pathlyhq` y un repositorio
-`terraform-provider-pathly`.
-
-**1. Repositorio de GitHub.** Cree la organización `pathlyhq` y el repositorio
-**público** `terraform-provider-pathly`, vacío, sin README generado y sin
-licencia generada. El espejo se negaría a hacer push sobre un historial
-divergente.
-
-**2. Espejo GitLab → GitHub.** En **Settings → Repository → Mirroring
-repositories** (Ajustes → Repositorio → Duplicación de repositorios), dirección
-*Push*, URL `https://github.com/pathlyhq/terraform-provider-pathly.git`, con un
-token de GitHub como contraseña. Deje «Mirror only protected branches» (Duplicar
-solo las ramas protegidas) **sin marcar**: sin las etiquetas Git, el registro no
-tiene nada que leer.
-
-**3. Variable CI/CD** `GITHUB_TOKEN`, masked y protected: un token
-**fine-grained** (de grano fino) con el permiso `contents: write` únicamente
-sobre el repositorio `terraform-provider-pathly`, y con caducidad corta. Un token
-clásico daría acceso a toda la organización.
-
-**4. Declaración al registro.** Inicie sesión en
-[registry.terraform.io](https://registry.terraform.io) con la cuenta de GitHub,
-declare la clave pública en *User settings → Signing keys* (Ajustes de usuario →
-Claves de firma), después *Publish → Provider* (Publicar → Provider) y elija el
-repositorio. El webhook se instala en ese momento.
-
-### Canal B — registro privado de HCP Terraform
-
-Ningún GitHub en esta vía. Un provider se publica directamente en el registro de
-la organización a través de su API — que además es la única manera, ya que la
-consola de HCP y la conexión VCS solo gestionan módulos, nunca providers.
-
-**1. Variable CI/CD** `TFE_TOKEN`, masked y protected: un token de HCP Terraform
-perteneciente a un equipo que posea el permiso *Manage private registry*
-(Gestionar el registro privado). Prefiera un token de equipo antes que uno
-personal, para que el pipeline no deje de funcionar el día en que su autor se
-marche.
-
-**2. Registre la clave pública** una sola vez, y conserve el id que devuelve.
-Para un registro privado, el namespace es el nombre de la organización:
+**4. Registro privado de HCP** (opcional). Registrar la clave pública una vez, y
+guardar el id devuelto como `TFE_GPG_KEY_ID`:
 
 ```sh
 curl -sS -X POST "https://app.terraform.io/api/registry/private/v2/gpg-keys" \
   -H "Authorization: Bearer $TFE_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  -d "$(jq -n --arg ns Pathly --arg key "$(gpg --armor --export <fingerprint>)" \
+  -d "$(jq -n --arg ns Pathly --arg key "$(gpg --armor --export <huella>)" \
         '{data:{type:"gpg-keys",attributes:{namespace:$ns,"ascii-armor":$key}}}')" \
   | jq -r '.data.attributes["key-id"]'
 ```
 
-**3. Variable CI/CD** `TFE_GPG_KEY_ID` con ese id. Es lo que vincula una versión
-publicada con la clave que la firmó.
-
-**4. Los consumidores** necesitan un token para el host, ya que un registro
-privado está autenticado. `terraform login app.terraform.io` escribe uno, o
-defina `TF_TOKEN_app_terraform_io` en CI:
-
-```hcl
-terraform {
-  required_providers {
-    pathly = {
-      source  = "app.terraform.io/Pathly/pathly"
-      version = "~> 0.1"
-    }
-  }
-}
-```
+Quienes usan el registro privado necesitan un token para el host:
+`terraform login app.terraform.io`, o `TF_TOKEN_app_terraform_io` en CI.
 
 ### Para cada versión
 
-```sh
-git tag v0.1.0 && git push origin v0.1.0
-```
+release-please mantiene al día una pull request `chore(main): release x.y.z` a
+partir de los Conventional Commits fusionados en `main`. Mientras la API esté en
+v1, las versiones avanzan de un patch en un patch (`feat` incluido). Fusionar esa
+pull request es la decisión de publicar:
 
-El pipeline ejecuta las pruebas, valida los ejemplos, y después se detiene.
-Siguen tres jobs manuales, en este orden: `archives` compila los once objetivos y
-firma las sumas de verificación, tras lo cual `publish-github` y `publish-hcp`
-suben esos mismos archivos a los canales que utilice. Ninguno de los dos jobs de
-publicación necesita al otro.
+1. release-please crea una release de GitHub en **borrador**;
+2. el job `goreleaser` ejecuta las pruebas, compila los once objetivos, firma las
+   sumas de verificación, adjunta los archivos y el manifiesto, y publica la
+   release, lo que crea la etiqueta `vX.Y.Z` y dispara el webhook del registro;
+3. `publish-hcp` sube los mismos archivos al registro privado cuando `TFE_TOKEN`
+   está definido.
 
-`publish-github` crea la release de GitHub en estado de **borrador**, de modo que
-el registro no ingiere nada mientras no la publique a mano. Dos gestos
-explícitos, y es deliberado: una versión publicada la consume de inmediato el
-`terraform init` de los clientes, y nunca podrá retirarse de un registro.
+El `terraform init` de los clientes consume de inmediato una versión publicada,
+y nunca podrá retirarse de un registro.
 
 ### Comprobar que una versión ha llegado realmente
 
@@ -336,13 +279,8 @@ curl -s -H "Authorization: Bearer $TFE_TOKEN" \
 En el registro público, que falte una versión mientras la release de GitHub está
 publicada casi siempre señala una firma rechazada: un archivo sin
 `SHA256SUMS.sig`, o una huella declarada al registro distinta de la que firmó
-realmente.
-
-En HCP, una versión cuyos archivos de sumas de verificación o binarios de
-plataforma no se hayan subido todos permanece en su sitio pero inutilizable, y
-`terraform init` la reporta como no disponible en lugar de ausente. Vuelva a
-ejecutar `publish-hcp` sobre la etiqueta: las llamadas se pueden repetir sin
-riesgo.
+realmente. En HCP, vuelva a ejecutar `publish-hcp`: las llamadas se pueden
+repetir sin riesgo.
 
 ## Pathly + Terraform — lista de adopción
 
