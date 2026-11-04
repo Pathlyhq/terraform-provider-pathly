@@ -1,5 +1,7 @@
 # Same checks as the release job runs before signing (test, examples,
-# docs-translations). Signed releases: release-please.yml.
+# docs-translations), plus Go module verification and govulncheck.
+# Signed releases: release-please.yml.
+# Third-party actions are pinned by commit SHA (the comment gives the version).
 name: CI
 
 on:
@@ -18,10 +20,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      # The downloaded modules (and the setup-go cache) must match go.sum.
+      - run: go mod verify
+      # go.mod and go.sum are tidy: the `go mod tidy` hook of GoReleaser then
+      # changes nothing at release time.
+      - run: go mod tidy -diff
+      # Known vulnerabilities reachable from the provider code (Go vulnerability
+      # database). Pinned version, checked against the Go checksum database.
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
       - name: gofmt
         run: |
           unformatted=$(gofmt -l $(git ls-files '*.go'))
@@ -38,7 +50,7 @@ jobs:
           total=$(go tool cover -func=covprofile | awk '/^total:/ {print $3}')
           echo "Coverage: ${total}"
           [ "${total}" = "100.0%" ] || (echo "Coverage must stay at 100%." && exit 1)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: provider
           path: terraform-provider-pathly
@@ -48,12 +60,12 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: provider
           path: /tmp/plugins
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: 1.14.1
           terraform_wrapper: false
@@ -75,7 +87,7 @@ jobs:
   docs-translations:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: translations/{fr,es} mirror docs/
         run: |
           (cd docs && find . -name '*.md' | sort) > /tmp/docs.list
