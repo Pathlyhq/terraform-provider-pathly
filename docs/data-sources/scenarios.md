@@ -1,7 +1,7 @@
 ---
 page_title: "pathly_scenarios"
 description: |-
-  Inventory of the organization scenarios, filterable by tag or by folder.
+  Inventory of the organization scenarios, filterable by tag, by folder or by Space.
 ---
 
 # pathly_scenarios
@@ -35,15 +35,17 @@ output "scenarios_outside_terraform" {
 
 - `filter_tag` (String) — Keeps only the scenarios carrying this tag.
 - `filter_folder` (String) — Keeps only the scenarios in this folder.
+- `filter_space_id` (String) — Keeps only the scenarios of this Space.
 
-Both filters combine, and apply after the read: they do not reduce the number of
-API calls.
+The filters combine. `filter_tag` and `filter_folder` apply after the read: they
+do not reduce the number of API calls. `filter_space_id` is applied by the API,
+which answers 404 for a Space it does not know.
 
 ### Computed
 
 - `scenarios` (List of Object) — Selected scenarios, each with `id`, `name`,
-  `type`, `url`, `enabled`, `interval_sec`, `folder`, `severity`, `tags` and
-  `last_status`.
+  `type`, `url`, `enabled`, `interval_sec`, `folder`, `severity`, `tags`,
+  `last_status` and `space_id`.
 
 ## Required scope
 

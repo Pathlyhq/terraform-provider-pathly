@@ -36,6 +36,9 @@ type Scenario struct {
 	MutedUntil          *string  `json:"mutedUntil"`
 	ScenarioFingerprint *string  `json:"scenarioFingerprint"`
 	CreatedAt           *string  `json:"createdAt"`
+	// SpaceID is only present while Spaces are open for the organization, and
+	// null for a scenario filed in no Space.
+	SpaceID *string `json:"spaceId"`
 }
 
 // ScenarioInput serves both the create and the update.
@@ -61,6 +64,7 @@ type ScenarioInput struct {
 	Enabled        *bool          `json:"enabled,omitempty"`
 	Scenario       *ScenarioAst   `json:"scenario,omitempty"`
 	HttpChain      []HttpChainHop `json:"httpChain,omitempty"`
+	SpaceID        *string        `json:"spaceId,omitempty"`
 }
 
 func (c *Client) CreateScenario(ctx context.Context, in ScenarioInput, idempotencyKey string) (*Scenario, error) {

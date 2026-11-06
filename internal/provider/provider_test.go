@@ -245,6 +245,8 @@ func TestRegisteredResourcesAreUniqueAndDocumented(t *testing.T) {
 		"pathly_maintenance_window",
 		"pathly_webhook",
 		"pathly_sla_target",
+		"pathly_space",
+		"pathly_status_page",
 	} {
 		if !seen[expected] {
 			t.Errorf("resource %s missing from the provider", expected)
@@ -332,6 +334,8 @@ func TestDataSourcesAreDeclared(t *testing.T) {
 		"pathly_webhooks":            false,
 		"pathly_maintenance_windows": false,
 		"pathly_status_page":         false,
+		"pathly_spaces":              false,
+		"pathly_account":             false,
 	}
 
 	for _, factory := range New("test")().DataSources(ctx) {

@@ -133,6 +133,9 @@ Même schéma que la [version anglaise](../../../docs/resources/scenario.md) :
 `steps` porte le Flow (1 à 50 actions), `scenario_fingerprint` détecte une
 édition hors Terraform. Les champs `value`, `username`, `password`, `body`
 et `headers` sont sensibles. L’API ne renvoie jamais `body` ni `headers`.
+`space_id` range le scénario dans un Espace (`pathly_space.id`) : une clé
+limitée à un Espace impose le sien, et la valeur reste nulle tant que les
+Espaces ne sont pas ouverts pour l'organisation.
 
 Opérations acceptées : `goto`, `click`, `hover`, `fill`, `select`, `upload`,
 `scroll`, `switch_tab`, `wait`, `wait_for`, `assert_text`, `assert_visible`,

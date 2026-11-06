@@ -105,6 +105,8 @@ func schemas(t *testing.T) map[string]fwschema.Schema {
 		"pathly_maintenance_window": NewMaintenanceWindowResource,
 		"pathly_webhook":            NewWebhookResource,
 		"pathly_sla_target":         NewSlaTargetResource,
+		"pathly_space":              NewSpaceResource,
+		"pathly_status_page":        NewStatusPageResource,
 	} {
 		resp := &resource.SchemaResponse{}
 		factory().Schema(ctx, resource.SchemaRequest{}, resp)
@@ -142,6 +144,10 @@ func TestStableComputedAttributesKeepTheirValue(t *testing.T) {
 	volatile := map[string]bool{
 		"pathly_scenario.last_status": true,
 		"pathly_scenario.muted_until": true,
+		// Published or unpublished by `pathly_status_page`, not by the Space.
+		"pathly_space.status_public": true,
+		// The name of the organization or of the Space, renamed elsewhere.
+		"pathly_status_page.name": true,
 	}
 
 	for resourceName, s := range schemas(t) {
