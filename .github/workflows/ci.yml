@@ -80,7 +80,7 @@ jobs:
           }
           TFRC
           export TF_CLI_CONFIG_FILE=/tmp/dev.tfrc
-          for dir in minimal complete import agency; do
+          for dir in minimal complete import agency agency-client; do
             (cd "examples/${dir}" && terraform validate)
           done
 

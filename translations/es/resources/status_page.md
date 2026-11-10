@@ -67,7 +67,7 @@ El identificador de la página de la organización es el de la organización
 del Espacio.
 
 ```sh
-terraform import pathly_status_page.shop 6f1c2a9e-…
+terraform import pathly_status_page.shop 6f1c2a9e-3b7d-4c58-a0e4-9d2f5b8c1a67
 ```
 
 ## Ámbitos necesarios

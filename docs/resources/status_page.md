@@ -86,7 +86,7 @@ import {
 ```
 
 ```sh
-terraform import pathly_status_page.shop 6f1c2a9e-…   # Space id
+terraform import pathly_status_page.shop 6f1c2a9e-3b7d-4c58-a0e4-9d2f5b8c1a67   # Space id
 ```
 
 ## Required scopes

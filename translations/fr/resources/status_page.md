@@ -65,7 +65,7 @@ L'identifiant de la page de l'organisation est celui de l'organisation
 celui de l'Espace.
 
 ```sh
-terraform import pathly_status_page.shop 6f1c2a9e-…
+terraform import pathly_status_page.shop 6f1c2a9e-3b7d-4c58-a0e4-9d2f5b8c1a67
 ```
 
 ## Portées requises

@@ -72,12 +72,12 @@ Read the limit from `data.pathly_account.this.quotas.spaces` or from
 ```terraform
 import {
   to = pathly_space.shop
-  id = "6f1c2a9e-…"
+  id = "6f1c2a9e-3b7d-4c58-a0e4-9d2f5b8c1a67"
 }
 ```
 
 ```sh
-terraform import pathly_space.shop 6f1c2a9e-…
+terraform import pathly_space.shop 6f1c2a9e-3b7d-4c58-a0e4-9d2f5b8c1a67
 ```
 
 The identifiers are listed by the `pathly_spaces` data source.
