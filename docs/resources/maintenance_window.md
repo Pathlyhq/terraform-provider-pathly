@@ -70,12 +70,15 @@ OpenTofu ≥ 1.5); the CLI form is equivalent.
 ```terraform
 import {
   to = pathly_maintenance_window.backup
-  id = "mw_01H8ZK…"
+  id = "c84e2d17-9a5b-4c36-b0f1-2e7d6a3c8b59"
 }
 ```
 
 ```sh
-terraform import pathly_maintenance_window.backup mw_01H8ZK…
+terraform import pathly_maintenance_window.backup c84e2d17-9a5b-4c36-b0f1-2e7d6a3c8b59
 ```
+
+The identifier is a UUID. Read it in the `id` field returned by the API
+(`GET /v1/maintenance-windows`) or by the `pathly_maintenance_windows` data source.
 
 Full working example: [`examples/import`](../../examples/import/).

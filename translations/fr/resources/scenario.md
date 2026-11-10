@@ -157,13 +157,16 @@ Préférez un bloc `import` (Terraform / OpenTofu ≥ 1.5) ; la forme CLI est
 ```terraform
 import {
   to = pathly_scenario.checkout
-  id = "mon_01H8ZK…"
+  id = "3f2b8c1e-6d4a-4b7f-9c2e-1a5d8e7f0b34"
 }
 ```
 
 ```sh
-terraform import pathly_scenario.checkout mon_01H8ZK…
+terraform import pathly_scenario.checkout 3f2b8c1e-6d4a-4b7f-9c2e-1a5d8e7f0b34
 ```
+
+L'identifiant est un UUID. Lisez-le dans l'adresse de la page du scénario dans
+la console, ou dans le champ `id` rendu par l'API (`GET /v1/scenarios`).
 
 Après l'import d'un parcours navigateur, redéclarez les `steps` : l'API ne les
 renvoie jamais. Exemple complet : dépôt `examples/import` (anglais canonique).

@@ -305,7 +305,7 @@ on every change.
 
 1. **Terraform Registry** — install with `source = "pathlyhq/pathly"` (public registry). Do not vendor the binary in projects.
 2. **Auth** — only `PATHLY_API_TOKEN` in CI (GitHub Actions, GitLab CI, Spacelift, Env0, Scalr). Never commit the key.
-3. **Import existing resources** — use `import` blocks or `terraform import pathly_scenario.name mon_…` (webhooks, maintenance windows, SLA targets, settings). See [`examples/import`](examples/import/).
+3. **Import existing resources** — use `import` blocks or `terraform import pathly_scenario.name 3f2b8c1e-6d4a-4b7f-9c2e-1a5d8e7f0b34` (the identifier is a UUID; webhooks, maintenance windows, SLA targets, settings). See [`examples/import`](examples/import/).
 4. **Docs** — resource pages under [`docs/`](docs/) are generated for the Registry (`tfplugindocs`). English is canonical on the Registry. Discovery / SEO notes: [`docs/SEO.md`](docs/SEO.md).
 5. **In the Pathly console** — when you create an API key on [pathlyhq.com](https://pathlyhq.com), use this provider for IaC. Developers portal: [pathlyhq.com/en/developers](https://pathlyhq.com/en/developers).
 

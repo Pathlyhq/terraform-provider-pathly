@@ -82,13 +82,16 @@ equivalente.
 ```terraform
 import {
   to = pathly_webhook.alerts
-  id = "wh_01H8ZK…"
+  id = "7a1c9e52-0b3d-4f68-8e21-5c4d9a6b2f10"
 }
 ```
 
 ```sh
-terraform import pathly_webhook.alerts wh_01H8ZK…
+terraform import pathly_webhook.alerts 7a1c9e52-0b3d-4f68-8e21-5c4d9a6b2f10
 ```
+
+El identificador es un UUID. Léalo en el campo `id` que devuelve la API
+(`GET /v1/webhooks`) o la fuente de datos `pathly_webhooks`.
 
 ~> La importación emite una advertencia: la API no devuelve ni la URL ni el
 secreto. Vuelva a indicar `url` en la configuración, de lo contrario el plan

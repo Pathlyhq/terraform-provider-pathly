@@ -75,10 +75,13 @@ Prefiera un bloque `import` (Terraform / OpenTofu ≥ 1.5).
 ```terraform
 import {
   to = pathly_maintenance_window.backup
-  id = "mw_01H8ZK…"
+  id = "c84e2d17-9a5b-4c36-b0f1-2e7d6a3c8b59"
 }
 ```
 
 ```sh
-terraform import pathly_maintenance_window.backup mw_01H8ZK…
+terraform import pathly_maintenance_window.backup c84e2d17-9a5b-4c36-b0f1-2e7d6a3c8b59
 ```
+
+El identificador es un UUID. Léalo en el campo `id` que devuelve la API
+(`GET /v1/maintenance-windows`) o la fuente de datos `pathly_maintenance_windows`.
