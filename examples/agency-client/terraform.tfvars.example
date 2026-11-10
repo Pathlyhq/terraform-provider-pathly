@@ -1,0 +1,31 @@
+# Copy to terraform.tfvars (ignored by git) and replace the values.
+# The API key is not here: export PATHLY_API_TOKEN in the shell or in CI.
+
+webhook_url = "https://hooks.example.com/pathly"
+
+clients = {
+  bakery = {
+    name         = "Example Bakery"
+    home_url     = "https://www.example.com/"
+    home_text    = "Fresh bread"
+    product_url  = "https://www.example.com/products/sourdough"
+    checkout_url = "https://www.example.com/checkout"
+    severity     = "critical"
+  }
+
+  bookshop = {
+    name                 = "Example Bookshop"
+    home_url             = "https://shop.example.com/"
+    product_url          = "https://shop.example.com/books/atlas"
+    checkout_url         = "https://shop.example.com/checkout"
+    add_to_cart_selector = "button.add-to-cart"
+    checkout_text        = "Payment method"
+    login_url            = "https://shop.example.com/login"
+    objective_pct        = 99.5
+  }
+}
+
+# Not in this file: the test account of bookshop is sensitive. Supply it
+# from your secret store, for example:
+#
+#   export TF_VAR_test_logins='{"bookshop":{"username":"probe@example.com","password":"..."}}'
