@@ -133,6 +133,9 @@ El mismo esquema que la [versión inglesa](../../../docs/resources/scenario.md):
 `steps` lleva el Flow (1 a 50 acciones), `scenario_fingerprint` detecta una
 edición fuera de Terraform. `value`, `username`, `password`, `body` y
 `headers` son sensibles. La API nunca devuelve `body` ni `headers`.
+`space_id` coloca el escenario en un Espacio (`pathly_space.id`): una clave
+limitada a un Espacio impone el suyo, y el valor queda nulo mientras los
+Espacios no estén abiertos para la organización.
 
 ## Atributos dejados vacíos
 

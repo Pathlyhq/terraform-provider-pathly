@@ -82,6 +82,8 @@ strictement exigées par les ressources que vous gérez :
 | `pathly_members` | `members:read` |
 | `pathly_runs`, `pathly_run` | `runs:read` |
 | `pathly_usage` | `org:read` |
+| `pathly_space`, `pathly_spaces`, `pathly_account` | `org:read`, `org:write` (`org:read` seul pour les deux data sources) |
+| `pathly_status_page` (ressource) | `status:read`, `status:write` |
 
 Pour un pipeline qui ne fait que `terraform plan`, les portées `:read`
 suffisent.
@@ -113,7 +115,11 @@ ne peut pas en créer une autre, ni inviter un compte.
 | `pathly_sla`, `pathly_sla_targets` | Objectifs, avec ou sans mesure |
 | `pathly_webhooks` | Webhooks sans leur destination |
 | `pathly_maintenance_windows` | Fenêtres |
-| `pathly_status_page` | Page de statut publique |
+| `pathly_status_page` (données) | Composants de la page de statut publique |
+| `pathly_space` | Espace : les scénarios d'un client, d'une marque ou d'une application (destroy archive) |
+| `pathly_status_page` | Page de statut de l'organisation ou d'un Espace, avec son badge (destroy dépublie) |
+| `pathly_spaces` | Espaces actifs et limite de l'offre |
+| `pathly_account` | Organisation et Espace de la clé, offre, quotas utilisés et restants |
 
 Documentation par ressource dans [`docs/`](docs/), traduite en français dans
 [`translations/fr/`](translations/fr/), exemples complets dans

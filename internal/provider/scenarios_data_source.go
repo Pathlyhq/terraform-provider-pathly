@@ -23,9 +23,10 @@ type scenariosDataSource struct {
 }
 
 type scenariosDataSourceModel struct {
-	FilterTag    types.String        `tfsdk:"filter_tag"`
-	FilterFolder types.String        `tfsdk:"filter_folder"`
-	Scenarios    []scenarioListEntry `tfsdk:"scenarios"`
+	FilterTag     types.String        `tfsdk:"filter_tag"`
+	FilterFolder  types.String        `tfsdk:"filter_folder"`
+	FilterSpaceID types.String        `tfsdk:"filter_space_id"`
+	Scenarios     []scenarioListEntry `tfsdk:"scenarios"`
 }
 
 type scenarioListEntry struct {
@@ -39,6 +40,7 @@ type scenarioListEntry struct {
 	Severity    types.String `tfsdk:"severity"`
 	Tags        types.List   `tfsdk:"tags"`
 	LastStatus  types.String `tfsdk:"last_status"`
+	SpaceID     types.String `tfsdk:"space_id"`
 }
 
 func (d *scenariosDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -47,7 +49,7 @@ func (d *scenariosDataSource) Metadata(_ context.Context, req datasource.Metadat
 
 func (d *scenariosDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Every scenario of the organization, filterable by tag or by folder.",
+		Description: "Every scenario of the organization, filterable by tag, by folder or by Space.",
 		Attributes: map[string]schema.Attribute{
 			"filter_tag": schema.StringAttribute{
 				Optional:    true,
@@ -56,6 +58,11 @@ func (d *scenariosDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 			"filter_folder": schema.StringAttribute{
 				Optional:    true,
 				Description: "Keeps only the scenarios in this folder.",
+			},
+			"filter_space_id": schema.StringAttribute{
+				Optional: true,
+				Description: "Keeps only the scenarios of this Space. Unlike the two other filters, " +
+					"the API applies it, and answers 404 for a Space it does not know.",
 			},
 			"scenarios": schema.ListNestedAttribute{
 				Computed:    true,
@@ -72,6 +79,7 @@ func (d *scenariosDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 						"severity":     schema.StringAttribute{Computed: true, Description: "Weight given to a failure of this scenario."},
 						"tags":         schema.ListAttribute{ElementType: types.StringType, Computed: true, Description: "Tags carried by the scenario."},
 						"last_status":  schema.StringAttribute{Computed: true, Description: "Result of the most recent execution."},
+						"space_id":     schema.StringAttribute{Computed: true, Description: "Space the scenario is filed in, null outside any Space."},
 					},
 				},
 			},
@@ -90,7 +98,13 @@ func (d *scenariosDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	all, err := d.client.ListScenarios(ctx)
+	var all []client.Scenario
+	var err error
+	if space := strings.TrimSpace(config.FilterSpaceID.ValueString()); space != "" {
+		all, err = d.client.ListScenariosInSpace(ctx, space)
+	} else {
+		all, err = d.client.ListScenarios(ctx)
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Cannot read the scenarios", err.Error())
 		return
@@ -118,6 +132,7 @@ func (d *scenariosDataSource) Read(ctx context.Context, req datasource.ReadReque
 			Severity:    stringFrom(s.Severity),
 			Tags:        stringsFrom(s.Tags),
 			LastStatus:  stringFrom(s.LastStatus),
+			SpaceID:     stringFrom(s.SpaceID),
 		})
 	}
 

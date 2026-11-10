@@ -87,7 +87,7 @@ func (h *dataHarness) mustRead(set map[string]tftypes.Value, into any) {
 	resp.State.Get(context.Background(), into)
 }
 
-// readDataSources are the twelve factories, used by the tests that have the
+// readDataSources are the fourteen factories, used by the tests that have the
 // same thing to say about all of them.
 func readDataSources() map[string]func() datasource.DataSource {
 	return map[string]func() datasource.DataSource{
@@ -103,6 +103,8 @@ func readDataSources() map[string]func() datasource.DataSource {
 		"webhooks":            NewWebhooksDataSource,
 		"maintenance_windows": NewMaintenanceWindowsDataSource,
 		"status_page":         NewStatusPageDataSource,
+		"spaces":              NewSpacesDataSource,
+		"account":             NewAccountDataSource,
 	}
 }
 

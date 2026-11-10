@@ -1,7 +1,7 @@
 ---
 page_title: "Pathly Provider"
 description: |-
-  Manage Pathly monitoring as code: scenarios, settings, maintenance windows, webhooks and SLA targets.
+  Manage Pathly monitoring as code: scenarios, Spaces, status pages, settings, maintenance windows, webhooks and SLA targets.
 ---
 
 # Pathly Provider
@@ -55,6 +55,8 @@ administrator account. Give it the strictly necessary scopes:
 | `pathly_runs`, `pathly_run` | `runs:read` |
 | `pathly_sla`, `pathly_sla_targets` | `sla:read` |
 | `pathly_usage` | `org:read` |
+| `pathly_space`, `pathly_spaces`, `pathly_account` | `org:read`, `org:write` (`org:read` alone for the two data sources) |
+| `pathly_status_page` (resource) | `status:read`, `status:write` |
 
 For a pipeline that only runs `terraform plan`, the `:read` scopes are enough.
 No organization scope is required: the check made at configuration time

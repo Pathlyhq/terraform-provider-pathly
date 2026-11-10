@@ -53,6 +53,10 @@ resource "pathly_settings" "this" {
 Turning `status_public` on publishes the scenario names and their availability.
 Check that none of them names an internal host before you do.
 
+`status_slug` and `status_public` drive the same organization page as
+`pathly_status_page` without `space_id`. Manage that page in one place only:
+with both, each apply undoes what the other wrote.
+
 Attributes left out of the configuration keep the value already set in the
 console. Sending a zero would erase them on the first apply.
 
