@@ -79,6 +79,8 @@ estrictamente exigidos por los recursos que gestione:
 | `pathly_members` | `members:read` |
 | `pathly_runs`, `pathly_run` | `runs:read` |
 | `pathly_usage` | `org:read` |
+| `pathly_space`, `pathly_spaces`, `pathly_account` | `org:read`, `org:write` (`org:read` solo para las dos data sources) |
+| `pathly_status_page` (recurso) | `status:read`, `status:write` |
 
 Para un pipeline que solo ejecuta `terraform plan`, los alcances `:read` bastan.
 
@@ -109,7 +111,11 @@ API no puede crear otra, ni invitar a una cuenta.
 | `pathly_sla`, `pathly_sla_targets` | Objetivos, con o sin medición |
 | `pathly_webhooks` | Webhooks sin su destino |
 | `pathly_maintenance_windows` | Ventanas |
-| `pathly_status_page` | Página de estado pública |
+| `pathly_status_page` (datos) | Componentes de la página de estado pública |
+| `pathly_space` | Espacio: los escenarios de un cliente, una marca o una aplicación (destroy archiva) |
+| `pathly_status_page` | Página de estado de la organización o de un Espacio, con su insignia (destroy despublica) |
+| `pathly_spaces` | Espacios activos y límite del plan |
+| `pathly_account` | Organización y Espacio de la clave, plan, cuotas usadas y restantes |
 
 Documentación por recurso en [`docs/`](docs/) (traducción al español en
 [`translations/es/`](translations/es/)), ejemplos completos en

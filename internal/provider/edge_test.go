@@ -51,6 +51,8 @@ func TestUnreadableStateStopsBeforeAnyCall(t *testing.T) {
 		"webhook":            NewWebhookResource,
 		"sla_target":         NewSlaTargetResource,
 		"settings":           NewSettingsResource,
+		"space":              NewSpaceResource,
+		"status_page":        NewStatusPageResource,
 	}
 
 	for name, factory := range resources {
@@ -96,9 +98,11 @@ func TestUnreadablePlanStopsUpdateWhereItExists(t *testing.T) {
 	// Windows and webhooks refuse every modification: their Update reads
 	// neither plan nor state.
 	for name, factory := range map[string]func() resource.Resource{
-		"scenario":   NewScenarioResource,
-		"sla_target": NewSlaTargetResource,
-		"settings":   NewSettingsResource,
+		"scenario":    NewScenarioResource,
+		"sla_target":  NewSlaTargetResource,
+		"settings":    NewSettingsResource,
+		"space":       NewSpaceResource,
+		"status_page": NewStatusPageResource,
 	} {
 		r := factory()
 		h := newHarness(t, r, func(_ *harness, w http.ResponseWriter, _ *http.Request) {
@@ -208,7 +212,9 @@ func TestReadRefusalsAreNotTakenForDeletions(t *testing.T) {
 		"webhook": {NewWebhookResource, map[string]tftypes.Value{
 			"id": str("h1"), "url": str("https://hooks.example.com"),
 		}},
-		"sla_target": {NewSlaTargetResource, map[string]tftypes.Value{"id": str("sla-1")}},
+		"sla_target":  {NewSlaTargetResource, map[string]tftypes.Value{"id": str("sla-1")}},
+		"space":       {NewSpaceResource, map[string]tftypes.Value{"id": str("sp-1")}},
+		"status_page": {NewStatusPageResource, map[string]tftypes.Value{"id": str("org-1")}},
 	}
 
 	for name, c := range cases {
@@ -241,6 +247,8 @@ func TestDeleteRefusalsAreReported(t *testing.T) {
 		"webhook": {NewWebhookResource, map[string]tftypes.Value{
 			"id": str("h1"), "url": str("https://hooks.example.com"),
 		}},
+		"space":       {NewSpaceResource, map[string]tftypes.Value{"id": str("sp-1")}},
+		"status_page": {NewStatusPageResource, map[string]tftypes.Value{"id": str("org-1")}},
 	}
 
 	for name, c := range cases {

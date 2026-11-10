@@ -78,6 +78,8 @@ required by the resources you manage:
 | `pathly_members` | `members:read` |
 | `pathly_runs`, `pathly_run` | `runs:read` |
 | `pathly_usage` | `org:read` |
+| `pathly_space`, `pathly_spaces`, `pathly_account` | `org:read`, `org:write` (`org:read` alone for the two data sources) |
+| `pathly_status_page` (resource) | `status:read`, `status:write` |
 
 For a pipeline that only runs `terraform plan`, the `:read` scopes are enough.
 
@@ -108,7 +110,11 @@ create another one, nor invite an account.
 | `pathly_sla`, `pathly_sla_targets` | Objectives, with or without measurement |
 | `pathly_webhooks` | Webhooks without their destination |
 | `pathly_maintenance_windows` | Windows |
-| `pathly_status_page` | Public status page |
+| `pathly_status_page` (data) | Components of the public status page |
+| `pathly_space` | Space: the scenarios of one client, brand or application (destroy archives) |
+| `pathly_status_page` | Status page of the organization or of a Space, with its badge (destroy unpublishes) |
+| `pathly_spaces` | Active Spaces and the limit of the plan |
+| `pathly_account` | Organization and Space of the key, plan, quotas used and remaining |
 
 Per-resource documentation in [`docs/`](docs/), complete examples in
 [`examples/`](examples/) (including [`examples/import`](examples/import/) for

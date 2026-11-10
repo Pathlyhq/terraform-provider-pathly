@@ -61,6 +61,8 @@ necesarios:
 | `pathly_runs`, `pathly_run` | `runs:read` |
 | `pathly_sla`, `pathly_sla_targets` | `sla:read` |
 | `pathly_usage` | `org:read` |
+| `pathly_space`, `pathly_spaces`, `pathly_account` | `org:read`, `org:write` (`org:read` solo para las dos data sources) |
+| `pathly_status_page` (recurso) | `status:read`, `status:write` |
 
 Para un pipeline que solo ejecuta `terraform plan`, los alcances `:read` bastan.
 No se exige ningún alcance de organización: la comprobación realizada en el

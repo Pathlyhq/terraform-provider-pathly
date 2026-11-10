@@ -57,6 +57,10 @@ resource "pathly_settings" "this" {
 Activer `status_public` publie les noms des scénarios et leur disponibilité.
 Vérifiez qu'aucun ne nomme un hôte interne.
 
+`status_slug` et `status_public` pilotent la même page de l'organisation que
+`pathly_status_page` sans `space_id`. Gérez cette page à un seul endroit : avec
+les deux, chaque apply défait ce que l'autre a écrit.
+
 Le schéma détaillé est dans la [version anglaise](../../../docs/resources/settings.md).
 Portées : `org:read` pour rafraîchir, `org:write` pour modifier.
 
