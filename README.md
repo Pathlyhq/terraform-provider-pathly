@@ -263,8 +263,9 @@ patch at a time (`feat` included). Merging that pull request is the publication
 decision:
 
 1. release-please creates a **draft** GitHub release;
-2. the `goreleaser` job runs the tests, builds the eleven targets, signs the
-   checksums, attaches the archives and the manifest, then publishes the release,
+2. the `goreleaser` job verifies the Go modules, runs the tests, builds the
+   eleven targets, signs the checksums, attests their build provenance, attaches
+   the archives and the manifest, then publishes the release,
    which creates the `vX.Y.Z` tag and triggers the registry webhook;
 3. `publish-hcp` pushes the same archives to the private registry when
    `TFE_TOKEN` is set.
@@ -288,6 +289,23 @@ On the public registry, a version missing while the GitHub release is published
 almost always signals a rejected signature: an archive without `SHA256SUMS.sig`,
 or a fingerprint declared to the registry that differs from the one that actually
 signed. On HCP, re-run `publish-hcp`: the calls are safe to repeat.
+
+### Verifying an archive
+
+From the version after v0.1.7, each archive, the checksums file and the manifest
+of a release come with a build provenance attestation, signed through Sigstore and
+stored on this repository. It proves that the file was built by the release
+workflow of this repository, from the commit of the release:
+
+```sh
+gh release download vX.Y.Z -R Pathlyhq/terraform-provider-pathly -p '*_linux_amd64.zip'
+gh attestation verify terraform-provider-pathly_X.Y.Z_linux_amd64.zip -R Pathlyhq/terraform-provider-pathly
+```
+
+v0.1.7 and earlier versions have no attestation. For every version, the GPG
+signature of the checksums (`SHA256SUMS.sig`) is what `terraform init` checks.
+CI also runs `go mod verify` and [govulncheck](https://go.dev/doc/security/vuln/)
+on every change.
 
 ## Pathly + Terraform — adoption checklist
 

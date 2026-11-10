@@ -264,9 +264,9 @@ les versions avancent d'un patch à la fois (`feat` compris). Fusionner cette pu
 request est la décision de publier :
 
 1. release-please crée une release GitHub en **brouillon** ;
-2. le job `goreleaser` lance les tests, construit les onze cibles, signe les
-   sommes de contrôle, joint les archives et le manifeste, puis publie la
-   release, ce qui crée le tag `vX.Y.Z` et déclenche le webhook du registre ;
+2. le job `goreleaser` vérifie les modules Go, lance les tests, construit les
+   onze cibles, signe les sommes de contrôle, atteste leur provenance, joint les
+   archives et le manifeste, puis publie la release, ce qui crée le tag `vX.Y.Z` et déclenche le webhook du registre ;
 3. `publish-hcp` envoie les mêmes archives au registre privé quand `TFE_TOKEN`
    est renseigné.
 
@@ -290,6 +290,23 @@ publiée signale presque toujours une signature rejetée : une archive sans
 `SHA256SUMS.sig`, ou une empreinte déclarée au registre différente de celle qui
 a réellement signé. Sur HCP, relancez `publish-hcp` : les appels peuvent être
 répétés sans risque.
+
+### Vérifier une archive
+
+À partir de la version qui suit la v0.1.7, chaque archive, le fichier des sommes
+de contrôle et le manifeste d'une release ont une attestation de provenance,
+signée par Sigstore et rangée sur ce dépôt. Elle prouve que le fichier a été
+construit par le workflow de release de ce dépôt, depuis le commit de la release :
+
+```sh
+gh release download vX.Y.Z -R Pathlyhq/terraform-provider-pathly -p '*_linux_amd64.zip'
+gh attestation verify terraform-provider-pathly_X.Y.Z_linux_amd64.zip -R Pathlyhq/terraform-provider-pathly
+```
+
+La v0.1.7 et les versions antérieures n'ont pas d'attestation. Pour toutes les
+versions, la signature GPG des sommes de contrôle (`SHA256SUMS.sig`) reste ce que
+vérifie `terraform init`. La CI lance aussi `go mod verify` et
+[govulncheck](https://go.dev/doc/security/vuln/) à chaque changement.
 
 ## Pathly + Terraform — checklist d’adoption
 
