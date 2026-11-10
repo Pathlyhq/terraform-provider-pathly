@@ -306,7 +306,7 @@ vérifie `terraform init`. La CI lance aussi `go mod verify` et
 
 1. **Terraform Registry** — `source = "pathlyhq/pathly"` (registre public). Ne pas vendor le binaire.
 2. **Auth** — uniquement `PATHLY_API_TOKEN` en CI. Jamais la clé dans Git.
-3. **Import** — `terraform import pathly_scenario.name mon_…` pour reprendre les ressources créées dans la console.
+3. **Import** — `terraform import pathly_scenario.name 3f2b8c1e-6d4a-4b7f-9c2e-1a5d8e7f0b34` pour reprendre les ressources créées dans la console.
 4. **Docs** — pages sous [`docs/`](docs/) pour le Registry (`tfplugindocs`). L’anglais est canonique sur le Registry.
 5. **Console Pathly** — créez la clé API sur [pathlyhq.com](https://pathlyhq.com), puis pilotez via ce provider. [Développeurs](https://pathlyhq.com/fr/developers).
 

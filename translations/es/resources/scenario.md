@@ -151,13 +151,16 @@ equivalente.
 ```terraform
 import {
   to = pathly_scenario.checkout
-  id = "mon_01H8ZK…"
+  id = "3f2b8c1e-6d4a-4b7f-9c2e-1a5d8e7f0b34"
 }
 ```
 
 ```sh
-terraform import pathly_scenario.checkout mon_01H8ZK…
+terraform import pathly_scenario.checkout 3f2b8c1e-6d4a-4b7f-9c2e-1a5d8e7f0b34
 ```
+
+El identificador es un UUID. Léalo en la dirección de la página del escenario
+en la consola, o en el campo `id` que devuelve la API (`GET /v1/scenarios`).
 
 Tras importar un recorrido de navegador, vuelva a declarar `steps`: la API
 nunca los devuelve. Ejemplo completo: `examples/import` (inglés canónico).

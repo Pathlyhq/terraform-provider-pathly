@@ -250,14 +250,14 @@ OpenTofu ≥ 1.5) checked into the repository; the CLI form is equivalent.
 ```terraform
 import {
   to = pathly_scenario.checkout
-  id = "mon_01H8ZK…"
+  id = "3f2b8c1e-6d4a-4b7f-9c2e-1a5d8e7f0b34"
 }
 ```
 
 ```sh
-terraform import pathly_scenario.checkout mon_01H8ZK…
+terraform import pathly_scenario.checkout 3f2b8c1e-6d4a-4b7f-9c2e-1a5d8e7f0b34
 ```
 
-The identifier can be read from the scenario URL in the console. After the
+The identifier is a UUID. Read it in the address of the scenario page in the console, or in the `id` field returned by the API (`GET /v1/scenarios`). After the
 import of a browser journey, state the `steps` again: the API never returns
 them. Full working example: [`examples/import`](../../examples/import/).

@@ -12,25 +12,25 @@ variable "alert_email" {
 }
 
 variable "import_scenario_id" {
-  description = "Existing scenario id (mon_…)."
+  description = "Existing scenario id (UUID)."
   type        = string
-  default     = "mon_REPLACE_ME"
+  default     = "00000000-0000-0000-0000-000000000000"
 }
 
 variable "import_webhook_id" {
-  description = "Existing webhook id (wh_…)."
+  description = "Existing webhook id (UUID)."
   type        = string
-  default     = "wh_REPLACE_ME"
+  default     = "00000000-0000-0000-0000-000000000000"
 }
 
 variable "import_maintenance_window_id" {
-  description = "Existing maintenance window id (mw_…)."
+  description = "Existing maintenance window id (UUID)."
   type        = string
-  default     = "mw_REPLACE_ME"
+  default     = "00000000-0000-0000-0000-000000000000"
 }
 
 variable "import_sla_target_id" {
-  description = "Existing SLA target id (sla_…)."
+  description = "Existing SLA target id (UUID)."
   type        = string
-  default     = "sla_REPLACE_ME"
+  default     = "00000000-0000-0000-0000-000000000000"
 }

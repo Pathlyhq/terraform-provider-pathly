@@ -66,12 +66,15 @@ OpenTofu ≥ 1.5); the CLI form is equivalent.
 ```terraform
 import {
   to = pathly_sla_target.checkout
-  id = "sla_01H8ZK…"
+  id = "1d6f0a93-4e8c-4a25-9b7d-8f3c2e5a6d41"
 }
 ```
 
 ```sh
-terraform import pathly_sla_target.checkout sla_01H8ZK…
+terraform import pathly_sla_target.checkout 1d6f0a93-4e8c-4a25-9b7d-8f3c2e5a6d41
 ```
+
+The identifier is a UUID. Read it in the `id` field returned by the API
+(`GET /v1/sla-targets`) or by the `pathly_sla_targets` data source.
 
 Full working example: [`examples/import`](../../examples/import/).

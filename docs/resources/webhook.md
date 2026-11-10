@@ -75,13 +75,16 @@ OpenTofu ≥ 1.5); the CLI form is equivalent.
 ```terraform
 import {
   to = pathly_webhook.alerts
-  id = "wh_01H8ZK…"
+  id = "7a1c9e52-0b3d-4f68-8e21-5c4d9a6b2f10"
 }
 ```
 
 ```sh
-terraform import pathly_webhook.alerts wh_01H8ZK…
+terraform import pathly_webhook.alerts 7a1c9e52-0b3d-4f68-8e21-5c4d9a6b2f10
 ```
+
+The identifier is a UUID. Read it in the `id` field returned by the API
+(`GET /v1/webhooks`) or by the `pathly_webhooks` data source.
 
 ~> The import emits a warning: the API returns neither the URL nor the secret.
 State `url` again in the configuration, otherwise the plan would propose a
